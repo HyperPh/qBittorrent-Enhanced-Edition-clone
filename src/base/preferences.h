@@ -191,7 +191,7 @@ public:
     bool isWebUiAuthSubnetWhitelistEnabled() const;
     void setWebUiAuthSubnetWhitelistEnabled(bool enabled);
     QList<Utils::Net::Subnet> getWebUiAuthSubnetWhitelist() const;
-    void setWebUiAuthSubnetWhitelist(const QList<Utils::Net::Subnet> &subnets);
+    void setWebUiAuthSubnetWhitelist(QStringList subnets);
     QString getWebUiUsername() const;
     void setWebUiUsername(const QString &username);
     QString getWebUiPassword() const;
@@ -303,7 +303,7 @@ public:
     void setMainVSplitterState(const QByteArray &state);
     QString getMainLastDir() const;
     void setMainLastDir(const QString &path);
-    QSize getPrefSize(const QSize &defaultSize) const;
+    QSize getPrefSize() const;
     void setPrefSize(const QSize &size);
     QStringList getPrefHSplitterSizes() const;
     void setPrefHSplitterSizes(const QStringList &sizes);
@@ -319,7 +319,7 @@ public:
     void setPropVisible(const bool visible);
     QByteArray getPropTrackerListState() const;
     void setPropTrackerListState(const QByteArray &state);
-    QSize getRssGeometrySize(const QSize &defaultSize) const;
+    QSize getRssGeometrySize() const;
     void setRssGeometrySize(const QSize &geometry);
     QByteArray getRssHSplitterSizes() const;
     void setRssHSplitterSizes(const QByteArray &sizes);

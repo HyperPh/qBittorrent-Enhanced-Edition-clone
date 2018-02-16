@@ -1,4 +1,4 @@
-AC_INIT([qbittorrent], [v3.2.0alpha], [bugs.qbittorrent.org], [], [http://www.qbittorrent.org/])
+AC_INIT([qbittorrent], [v4.0.4], [bugs.qbittorrent.org], [], [https://www.qbittorrent.org/])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_CC
@@ -190,7 +190,7 @@ extract() {
   new_line='
 '
   # Convert " -" to "\n" if not between quotes and remove possible leading white spaces
-  string=$(echo " $*" | $SED -e "s: -:\\${new_line}:g" -e 's:"\(.*\)\n\(.*\)":\"\1 -\2":g' -e "s:'\(.*\)\n\(.*\)':\'\1 -\2':g" -e 's/^[[:space:]]*//')
+  string=$(echo " $*" | $SED -e "s: -:\\${new_line}:g" -e 's:"\(.*\)\n\(.*\)":\"\1 -\2":g' -e "s:'\(.*\)\n\(.*\)':\'\1 -\2':g" -e 's/^[[[:space:]]]*//')
   SAVEIFS=$IFS
   IFS=$(printf "\n\b")
   for i in $string; do
@@ -204,9 +204,8 @@ extract() {
   IFS=$SAVEIFS
 }
 
-extract $CPPFLAGS
+extract "$CFLAGS $CPPFLAGS $CXXFLAGS"
 QBT_ADD_DEFINES="$QBT_ADD_DEFINES $QBT_CONF_DEFINES"
-QBT_CONF_EXTRA_CFLAGS="$QBT_CONF_EXTRA_CFLAGS $CXXFLAGS"
 
 # Substitute the values of these vars in conf.pri.in
 AC_SUBST(QBT_CONF_INCLUDES)

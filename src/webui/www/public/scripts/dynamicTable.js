@@ -733,6 +733,7 @@ var TorrentsTable = new Class({
             this.newColumn('state_icon', 'cursor: default', '', 22, true);
             this.newColumn('name', '', 'QBT_TR(Name)QBT_TR[CONTEXT=TorrentModel]', 200, true);
             this.newColumn('size', '', 'QBT_TR(Size)QBT_TR[CONTEXT=TorrentModel]', 100, true);
+            this.newColumn('total_size', '', 'QBT_TR(Total Size)QBT_TR[CONTEXT=TorrentModel]', 100, false);
             this.newColumn('progress', '', 'QBT_TR(Done)QBT_TR[CONTEXT=TorrentModel]', 85, true);
             this.newColumn('status', '', 'QBT_TR(Status)QBT_TR[CONTEXT=TorrentModel]', 100, true);
             this.newColumn('num_seeds', '', 'QBT_TR(Seeds)QBT_TR[CONTEXT=TorrentModel]', 100, true);
@@ -742,6 +743,7 @@ var TorrentsTable = new Class({
             this.newColumn('eta', '', 'QBT_TR(ETA)QBT_TR[CONTEXT=TorrentModel]', 100, true);
             this.newColumn('ratio', '', 'QBT_TR(Ratio)QBT_TR[CONTEXT=TorrentModel]', 100, true);
             this.newColumn('category', '', 'QBT_TR(Category)QBT_TR[CONTEXT=TorrentModel]', 100, true);
+            this.newColumn('tags', '', 'QBT_TR(Tags)QBT_TR[CONTEXT=TorrentModel]', 100, true);
             this.newColumn('added_on', '', 'QBT_TR(Added On)QBT_TR[CONTEXT=TorrentModel]', 100, true);
             this.newColumn('completion_on', '', 'QBT_TR(Completed On)QBT_TR[CONTEXT=TorrentModel]', 100, false);
             this.newColumn('tracker', '', 'QBT_TR(Tracker)QBT_TR[CONTEXT=TorrentModel]', 100, false);
@@ -752,12 +754,12 @@ var TorrentsTable = new Class({
             this.newColumn('downloaded_session', '', 'QBT_TR(Session Download)QBT_TR[CONTEXT=TorrentModel]', 100, false);
             this.newColumn('uploaded_session', '', 'QBT_TR(Session Upload)QBT_TR[CONTEXT=TorrentModel]', 100, false);
             this.newColumn('amount_left', '', 'QBT_TR(Remaining)QBT_TR[CONTEXT=TorrentModel]', 100, false);
+            this.newColumn('time_active', '', 'QBT_TR(Time Active)QBT_TR[CONTEXT=TorrentModel]', 100, false);
             this.newColumn('save_path', '', 'QBT_TR(Save path)QBT_TR[CONTEXT=TorrentModel]', 100, false);
             this.newColumn('completed', '', 'QBT_TR(Completed)QBT_TR[CONTEXT=TorrentModel]', 100, false);
             this.newColumn('ratio_limit', '', 'QBT_TR(Ratio Limit)QBT_TR[CONTEXT=TorrentModel]', 100, false);
             this.newColumn('seen_complete', '', 'QBT_TR(Last Seen Complete)QBT_TR[CONTEXT=TorrentModel]', 100, false);
             this.newColumn('last_activity', '', 'QBT_TR(Last Activity)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-            this.newColumn('total_size', '', 'QBT_TR(Total Size)QBT_TR[CONTEXT=TorrentModel]', 100, false);
 
             this.columns['state_icon'].onclick = '';
             this.columns['state_icon'].dataProperties[0] = 'state';
@@ -774,24 +776,41 @@ var TorrentsTable = new Class({
             // state_icon
             this.columns['state_icon'].updateTd = function (td, row) {
                 var state = this.getRowValue(row);
-
-                if ((state === "forcedDL") || (state === "metaDL"))
-                    state = "downloading";
-                else if (state === "allocating")
-                    state = "stalledDL";
-                else if (state === "forcedUP")
-                    state = "uploading";
-                else if (state === "pausedDL")
-                    state = "paused";
-                else if (state === "pausedUP")
-                    state = "completed";
-                else if ((state === "queuedDL") || (state === "queuedUP"))
-                    state = "queued";
-                else if ((state === "checkingDL") || (state === "checkingUP") ||
-                        (state === "queuedForChecking") || (state === "checkingResumeData"))
-                    state = "checking";
-                else if ((state === "unknown") || (state === "error") || (state === "missingFiles"))
-                    state = "error";
+                // normalize states
+                switch (state) {
+                    case "forcedDL":
+                    case "metaDL":
+                        state = "downloading";
+                        break;
+                    case "allocating":
+                        state = "stalledDL";
+                        break;
+                    case "forcedUP":
+                        state = "uploading";
+                        break;
+                    case "pausedDL":
+                        state = "paused";
+                        break;
+                    case "pausedUP":
+                        state = "completed";
+                        break;
+                    case "queuedDL":
+                    case "queuedUP":
+                        state = "queued";
+                        break;
+                    case "checkingDL":
+                    case "checkingUP":
+                    case "queuedForChecking":
+                    case "checkingResumeData":
+                        state = "checking";
+                        break;
+                    case "unknown":
+                    case "missingFiles":
+                        state = "error";
+                        break;
+                    default:
+                        break; // do nothing
+                }
 
                 var img_path = 'images/skin/' + state + '.png';
 
@@ -809,26 +828,62 @@ var TorrentsTable = new Class({
 
             // status
             this.columns['status'].updateTd = function (td, row) {
-                var status = this.getRowValue(row);
-                if (!status) return;
+                var state = this.getRowValue(row);
+                if (!state) return;
 
-                if ((status === "downloading") || (status === "forcedDL") || (status === "metaDL"))
-                    status = "Downloading";
-                else if ((status === "stalledDL") || (status === "stalledUP") || (status === "allocating"))
-                    status = "Stalled";
-                else if ((status === "uploading") || (status === "forcedUP"))
-                    status = "Uploading";
-                else if (status === "pausedDL")
-                    status = "Paused";
-                else if (status === "pausedUP")
-                    status = "Completed";
-                else if ((status === "queuedDL") || (status === "queuedUP"))
-                    status = "Queued";
-                else if ((status === "checkingDL") || (status === "checkingUP") ||
-                        (status === "queuedForChecking") || (status === "checkingResumeData"))
-                    status = "Checking";
-                else if ((status === "unknown") || (status === "error") || (status === "missingFiles"))
-                    status = "Error";
+                var status;
+                switch (state) {
+                    case "downloading":
+                        status = "Downloading";
+                        break;
+                    case "stalledDL":
+                        status = "Stalled";
+                        break;
+                    case "metaDL":
+                        status = "Downloading metadata";
+                        break;
+                    case "forcedDL":
+                        status = "[F] Downloading";
+                        break;
+                    case "allocating":
+                        status = "Allocating";
+                        break;
+                    case "uploading":
+                    case "stalledUP":
+                        status = "Seeding";
+                        break;
+                    case "forcedUP":
+                        status = "[F] Seeding";
+                        break;
+                    case "queuedDL":
+                    case "queuedUP":
+                        status = "Queued";
+                        break;
+                    case "checkingDL":
+                    case "checkingUP":
+                        status = "Checking";
+                        break;
+                    case "queuedForChecking":
+                        status = "Queued for checking";
+                        break;
+                    case "checkingResumeData":
+                        status = "Checking resume data";
+                        break;
+                    case "pausedDL":
+                        status = "Paused";
+                        break;
+                    case "pausedUP":
+                        status = "Completed";
+                        break;
+                    case "missingFiles":
+                        status = "Missing Files";
+                        break;
+                    case "error":
+                        status = "Errored";
+                        break;
+                    default:
+                        status = "Unknown";
+                }
 
                 td.set('html', status);
             };
@@ -961,6 +1016,9 @@ var TorrentsTable = new Class({
                 td.set('html', html);
             };
 
+            // tags
+            this.columns['tags'].updateTd = this.columns['name'].updateTd;
+
             // added on
             this.columns['added_on'].updateTd = function (td, row) {
                 var date = new Date(this.getRowValue(row) * 1000).toLocaleString();
@@ -1016,6 +1074,12 @@ var TorrentsTable = new Class({
                     td.set('html', '∞');
                 else
                     td.set('html', 'QBT_TR(%1 ago)QBT_TR[CONTEXT=TransferListDelegate]'.replace('%1', friendlyDuration((new Date()) / 1000 - val, true)));
+            };
+
+            // time active
+            this.columns['time_active'].updateTd = function (td, row) {
+                var time = this.getRowValue(row);
+                td.set('html', friendlyDuration(time));
             };
         },
 

@@ -62,6 +62,10 @@
 #include "transferlistsortmodel.h"
 #include "updownratiodlg.h"
 
+#ifdef Q_OS_MAC
+#include "macutilities.h"
+#endif
+
 namespace
 {
     using ToggleFn = std::function<void (Qt::CheckState)>;
@@ -358,10 +362,14 @@ void TransferListWidget::torrentDoubleClicked()
             torrent->pause();
         break;
     case OPEN_DEST:
+#ifdef Q_OS_MAC
+        MacUtils::openFiles(QSet<QString>{torrent->contentPath(true)});
+#else
         if (torrent->filesCount() == 1)
             Utils::Misc::openFolderSelect(torrent->contentPath(true));
         else
             Utils::Misc::openPath(torrent->contentPath(true));
+#endif
         break;
     }
 }
@@ -548,6 +556,15 @@ void TransferListWidget::hidePriorityColumn(bool hide)
 void TransferListWidget::openSelectedTorrentsFolder() const
 {
     QSet<QString> pathsList;
+#ifdef Q_OS_MAC
+    // On macOS you expect both the files and folders to be opened in their parent
+    // folders prehilighted for opening, so we use a custom method.
+    foreach (BitTorrent::TorrentHandle *const torrent, getSelectedTorrents()) {
+        QString path = torrent->contentPath(true);
+        pathsList.insert(path);
+    }
+    MacUtils::openFiles(pathsList);
+#else
     foreach (BitTorrent::TorrentHandle *const torrent, getSelectedTorrents()) {
         QString path = torrent->contentPath(true);
         if (!pathsList.contains(path)) {
@@ -558,6 +575,7 @@ void TransferListWidget::openSelectedTorrentsFolder() const
         }
         pathsList.insert(path);
     }
+#endif
 }
 
 void TransferListWidget::previewSelectedTorrents()
@@ -665,6 +683,12 @@ void TransferListWidget::recheckSelectedTorrents()
         torrent->forceRecheck();
 }
 
+void TransferListWidget::reannounceSelectedTorrents()
+{
+    foreach (BitTorrent::TorrentHandle *const torrent, getSelectedTorrents())
+        torrent->forceReannounce();
+}
+
 // hide/show columns menu
 void TransferListWidget::displayDLHoSMenu(const QPoint&)
 {
@@ -698,10 +722,9 @@ void TransferListWidget::displayDLHoSMenu(const QPoint&)
         Q_ASSERT(visibleCols > 0);
         if (!isColumnHidden(col) && visibleCols == 1)
             return;
-        qDebug("Toggling column %d visibility", col);
         setColumnHidden(col, !isColumnHidden(col));
         if (!isColumnHidden(col) && columnWidth(col) <= 5)
-            setColumnWidth(col, 100);
+            resizeColumnToContents(col);
         saveSettings();
     }
 }
@@ -864,6 +887,8 @@ void TransferListWidget::displayListMenu(const QPoint&)
     connect(&actionSetTorrentPath, SIGNAL(triggered()), this, SLOT(setSelectedTorrentsLocation()));
     QAction actionForce_recheck(GuiIconProvider::instance()->getIcon("document-edit-verify"), tr("Force recheck"), 0);
     connect(&actionForce_recheck, SIGNAL(triggered()), this, SLOT(recheckSelectedTorrents()));
+    QAction actionForce_reannounce(GuiIconProvider::instance()->getIcon("document-edit-verify"), tr("Force reannounce"), 0);
+    connect(&actionForce_reannounce, SIGNAL(triggered()), this, SLOT(reannounceSelectedTorrents()));
     QAction actionCopy_magnet_link(GuiIconProvider::instance()->getIcon("kt-magnet"), tr("Copy magnet link"), 0);
     connect(&actionCopy_magnet_link, SIGNAL(triggered()), this, SLOT(copySelectedMagnetURIs()));
     QAction actionCopy_name(GuiIconProvider::instance()->getIcon("edit-copy"), tr("Copy name"), 0);
@@ -1067,6 +1092,7 @@ void TransferListWidget::displayListMenu(const QPoint&)
         listMenu.addSeparator();
     if (one_has_metadata) {
         listMenu.addAction(&actionForce_recheck);
+        listMenu.addAction(&actionForce_reannounce);
         listMenu.addSeparator();
     }
     listMenu.addAction(&actionOpen_destination_folder);
@@ -1175,10 +1201,7 @@ void TransferListWidget::saveSettings()
 
 bool TransferListWidget::loadSettings()
 {
-    bool ok = header()->restoreState(Preferences::instance()->getTransHeaderState());
-    if (!ok)
-        header()->resizeSection(0, 200); // Default
-    return ok;
+    return header()->restoreState(Preferences::instance()->getTransHeaderState());
 }
 
 void TransferListWidget::wheelEvent(QWheelEvent *event)

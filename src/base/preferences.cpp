@@ -35,6 +35,7 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QLocale>
+#include <QMutableListIterator>
 #include <QPair>
 #include <QSettings>
 
@@ -487,13 +488,17 @@ QList<Utils::Net::Subnet> Preferences::getWebUiAuthSubnetWhitelist() const
     return subnets;
 }
 
-void Preferences::setWebUiAuthSubnetWhitelist(const QList<Utils::Net::Subnet> &subnets)
+void Preferences::setWebUiAuthSubnetWhitelist(QStringList subnets)
 {
-    QStringList subnetsStringList;
-    for (const Utils::Net::Subnet &subnet : subnets)
-        subnetsStringList.append(Utils::Net::subnetToString(subnet));
+    QMutableListIterator<QString> i(subnets);
+    while (i.hasNext()) {
+        bool ok = false;
+        const Utils::Net::Subnet subnet = Utils::Net::parseSubnet(i.next().trimmed(), &ok);
+        if (!ok)
+            i.remove();
+    }
 
-    setValue("Preferences/WebUI/AuthSubnetWhitelist", subnetsStringList);
+    setValue("Preferences/WebUI/AuthSubnetWhitelist", subnets);
 }
 
 QString Preferences::getServerDomains() const
@@ -1226,9 +1231,9 @@ void Preferences::setMainLastDir(const QString &path)
     setValue("MainWindowLastDir", path);
 }
 
-QSize Preferences::getPrefSize(const QSize &defaultSize) const
+QSize Preferences::getPrefSize() const
 {
-    return value("Preferences/State/size", defaultSize).toSize();
+    return value("Preferences/State/size").toSize();
 }
 
 void Preferences::setPrefSize(const QSize &size)
@@ -1306,9 +1311,9 @@ void Preferences::setPropTrackerListState(const QByteArray &state)
     setValue("TorrentProperties/Trackers/qt5/TrackerListState", state);
 }
 
-QSize Preferences::getRssGeometrySize(const QSize &defaultSize) const
+QSize Preferences::getRssGeometrySize() const
 {
-    return value("RssFeedDownloader/geometrySize", defaultSize).toSize();
+    return value("RssFeedDownloader/geometrySize").toSize();
 }
 
 void Preferences::setRssGeometrySize(const QSize &geometry)

@@ -87,7 +87,7 @@ namespace
     const QString KEY_FILELOGGER_PATH = FILELOGGER_SETTINGS_KEY("Path");
     const QString KEY_FILELOGGER_BACKUP = FILELOGGER_SETTINGS_KEY("Backup");
     const QString KEY_FILELOGGER_DELETEOLD = FILELOGGER_SETTINGS_KEY("DeleteOld");
-    const QString KEY_FILELOGGER_MAXSIZE = FILELOGGER_SETTINGS_KEY("MaxSize");
+    const QString KEY_FILELOGGER_MAXSIZEBYTES = FILELOGGER_SETTINGS_KEY("MaxSizeBytes");
     const QString KEY_FILELOGGER_AGE = FILELOGGER_SETTINGS_KEY("Age");
     const QString KEY_FILELOGGER_AGETYPE = FILELOGGER_SETTINGS_KEY("AgeType");
 
@@ -98,6 +98,10 @@ namespace
     const char PARAMS_SEPARATOR[] = "|";
 
     const QString DEFAULT_PORTABLE_MODE_PROFILE_DIR = QLatin1String("profile");
+
+    const int MIN_FILELOG_SIZE = 1024; // 1KiB
+    const int MAX_FILELOG_SIZE = 1000 * 1024 * 1024; // 1000MiB
+    const int DEFAULT_FILELOG_SIZE = 65 * 1024; // 65KiB
 }
 
 Application::Application(const QString &id, int &argc, char **argv)
@@ -128,7 +132,6 @@ Application::Application(const QString &id, int &argc, char **argv)
     if (m_commandLineArgs.webUiPort > 0) // it will be -1 when user did not set any value
         Preferences::instance()->setWebUiPort(m_commandLineArgs.webUiPort);
 
-    setApplicationName("qBittorrent");
     initializeTranslation();
 
 #if !defined(DISABLE_GUI)
@@ -221,29 +224,22 @@ void Application::setFileLoggerDeleteOld(bool value)
 
 int Application::fileLoggerMaxSize() const
 {
-    int val = settings()->loadValue(KEY_FILELOGGER_MAXSIZE, 10).toInt();
-    if (val < 1)
-        return 1;
-    if (val > 1000)
-        return 1000;
-    return val;
+    int val = settings()->loadValue(KEY_FILELOGGER_MAXSIZEBYTES, DEFAULT_FILELOG_SIZE).toInt();
+    return std::min(std::max(val, MIN_FILELOG_SIZE), MAX_FILELOG_SIZE);
 }
 
-void Application::setFileLoggerMaxSize(const int value)
+void Application::setFileLoggerMaxSize(const int bytes)
 {
+    int clampedValue = std::min(std::max(bytes, MIN_FILELOG_SIZE), MAX_FILELOG_SIZE);
     if (m_fileLogger)
-        m_fileLogger->setMaxSize(value);
-    settings()->storeValue(KEY_FILELOGGER_MAXSIZE, std::min(std::max(value, 1), 1000));
+        m_fileLogger->setMaxSize(clampedValue);
+    settings()->storeValue(KEY_FILELOGGER_MAXSIZEBYTES, clampedValue);
 }
 
 int Application::fileLoggerAge() const
 {
-    int val = settings()->loadValue(KEY_FILELOGGER_AGE, 6).toInt();
-    if (val < 1)
-        return 1;
-    if (val > 365)
-        return 365;
-    return val;
+    int val = settings()->loadValue(KEY_FILELOGGER_AGE, 1).toInt();
+    return std::min(std::max(val, 1), 365);
 }
 
 void Application::setFileLoggerAge(const int value)
@@ -291,27 +287,6 @@ void Application::runExternalProgram(BitTorrent::TorrentHandle *const torrent) c
 
 #if defined(Q_OS_UNIX)
     QProcess::startDetached(QLatin1String("/bin/sh"), {QLatin1String("-c"), program});
-#elif defined(Q_OS_WIN)  // test cmd: `echo "%F" > "c:\ab ba.txt"`
-    program.prepend(QLatin1String("\"")).append(QLatin1String("\""));
-    program.prepend(Utils::Misc::windowsSystemPath() + QLatin1String("\\cmd.exe /C "));
-    const int cmdMaxLength = 32768;  // max length (incl. terminate char) for `lpCommandLine` in `CreateProcessW()`
-    if ((program.size() + 1) > cmdMaxLength) {
-        logger->addMessage(tr("Torrent: %1, run external program command too long (length > %2), execution failed.").arg(torrent->name()).arg(cmdMaxLength), Log::CRITICAL);
-        return;
-    }
-
-    STARTUPINFOW si = {0};
-    si.cb = sizeof(si);
-    PROCESS_INFORMATION pi = {0};
-
-    WCHAR *arg = new WCHAR[program.size() + 1];
-    program.toWCharArray(arg);
-    arg[program.size()] = L'\0';
-    if (CreateProcessW(NULL, arg, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
-    }
-    delete[] arg;
 #else
     QProcess::startDetached(program);
 #endif
