@@ -83,7 +83,6 @@
     <addaction name="actionOptions"/>
     <addaction name="separator"/>
     <addaction name="menuAutoShutdownOnDownloadsCompletion"/>
-    <addaction name="actionResetIPFilter"/>
    </widget>
    <widget class="QMenu" name="menuFile">
     <property name="title">
@@ -472,15 +471,7 @@
    <property name="text">
     <string>Close Window</string>
    </property>
-   </action>
-   <action name="actionResetIPFilter">
-     <property name="checkable">
-      <bool>true</bool>
-     </property>
-     <property name="text">
-      <string>Reset IPFilter When Exit</string>
-     </property>
-   </action>
+  </action>
  </widget>
  <resources/>
  <connections/>

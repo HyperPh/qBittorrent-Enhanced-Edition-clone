@@ -399,7 +399,6 @@ MainWindow::MainWindow(QWidget *parent)
     m_ui->actionAutoHibernate->setDisabled(true);
 #endif
     m_ui->actionAutoExit->setChecked(pref->shutdownqBTWhenDownloadsComplete());
-    m_ui->actionResetIPFilter->setChecked(false);
 
     if (!autoShutdownGroup->checkedAction())
         m_ui->actionAutoShutdownDisabled->setChecked(true);
@@ -1170,9 +1169,6 @@ void MainWindow::closeEvent(QCloseEvent *e)
         m_systrayIcon->hide();
 #endif
     // Accept exit
-    if(m_ui->actionResetIPFilter->isChecked()) {
-            BitTorrent::Session::instance()->unbanIP();
-    }
     e->accept();
     qApp->exit();
 }
