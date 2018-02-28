@@ -20,10 +20,12 @@ RC_FILE = qbittorrent.rc
 # Adapt the lib names/versions accordingly
 CONFIG(debug, debug|release) {
   LIBS += libtorrentd.lib \
-          libboost_system-vc140-mt-s-1_64.lib
+          libboost_system-vc151-mt-s-x64-1_66.lib
+          #libboost_system-vc151-mt-s-x32-1_66.lib
 } else {
   LIBS += libtorrent.lib \
-          libboost_system-vc140-mt-s-1_64.lib
+          libboost_system-vc151-mt-s-x64-1_66.lib
+          #libboost_system-vc151-mt-s-x32-1_66.lib
 }
 
 LIBS += advapi32.lib shell32.lib crypt32.lib User32.lib
