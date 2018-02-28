@@ -343,7 +343,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_preventTimer, &QTimer::timeout, this, &MainWindow::checkForActiveTorrents);
     m_UnbanTimer = new QTimer(this);
     m_UnbanTimer->setInterval(500);
-    connect(m_UnbanTimer, SIGNAL(timeout()), SLOT(processUnbanRequest()));
+    connect(m_UnbanTimer, &QTimer::timeout, this, &MainWindow::processUnbanRequest);
 
     // Configure BT session according to options
     loadPreferences(false);
@@ -1586,6 +1586,7 @@ void MainWindow::updateGUI()
     }
 
     //New Method
+    bool m_AutoBan = BitTorrent::Session::instance()->isAutoBanUnknownPeerEnabled();
     foreach (BitTorrent::TorrentHandle *const torrent, BitTorrent::Session::instance()->torrents()) {
         QList<BitTorrent::PeerInfo> peers = torrent->peers();
         foreach (const BitTorrent::PeerInfo &peer, peers) {

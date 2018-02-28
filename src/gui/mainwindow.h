@@ -274,7 +274,6 @@ private:
 #endif
     bool m_hasPython;
     QMenu *m_toolbarMenu;
-    bool m_AutoBan;
 };
 
 #endif // MAINWINDOW_H
