@@ -459,7 +459,6 @@ namespace BitTorrent
         void tempblockIP(const QString &ip);
         void removeBlockedIP(const QString &ip);
         void EraseIPFilter();
-        void unbanIP();
 
 
         bool isKnownTorrent(const InfoHash &hash) const;
