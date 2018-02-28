@@ -1415,14 +1415,20 @@ void Session::banIP(const QString &ip)
 bool Session::checkAccessFlags(const QString &ip)
 {
     libt::ip_filter filter = m_nativeSession->get_ip_filter();
-    libt::address addr = libt::address::from_string(ip.toLatin1().constData());
+    boost::system::error_code ec;
+    libt::address addr = libt::address::from_string(ip.toLatin1().constData(), ec);
+    Q_ASSERT(!ec);
+    if (ec) return false;
     return filter.access(addr);
 }
 
 void Session::tempblockIP(const QString &ip)
 {
     libt::ip_filter filter = m_nativeSession->get_ip_filter();
-    libt::address addr = libt::address::from_string(ip.toLatin1().constData());
+    boost::system::error_code ec;
+    libt::address addr = libt::address::from_string(ip.toLatin1().constData(), ec);
+    Q_ASSERT(!ec);
+    if (ec) return;
     filter.add_rule(addr, addr, libt::ip_filter::blocked);
     m_nativeSession->set_ip_filter(filter);
 }
@@ -1430,7 +1436,10 @@ void Session::tempblockIP(const QString &ip)
 void Session::removeBlockedIP(const QString &ip)
 {
     libt::ip_filter filter = m_nativeSession->get_ip_filter();
-    libt::address addr = libt::address::from_string(ip.toLatin1().constData());
+    boost::system::error_code ec;
+    libt::address addr = libt::address::from_string(ip.toLatin1().constData(), ec);
+    Q_ASSERT(!ec);
+    if (ec) return;
     filter.add_rule(addr, addr, 0);
     m_nativeSession->set_ip_filter(filter);
 }
