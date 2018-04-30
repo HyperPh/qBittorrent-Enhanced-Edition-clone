@@ -1511,7 +1511,7 @@ void TorrentHandle::handleTrackerWarningAlert(libtorrent::tracker_warning_alert 
     QString message = QString::fromStdString(p->msg);
 #else
     QString trackerUrl(p->tracker_url());
-    QString message = QString::fromStdString(p->message());
+    const QString message = p->warning_message();
 #endif
     qDebug("Received a tracker warning for %s: %s", qUtf8Printable(trackerUrl), qUtf8Printable(message));
     // Connection was successful now but there is a warning message
@@ -1527,7 +1527,7 @@ void TorrentHandle::handleTrackerErrorAlert(libtorrent::tracker_error_alert *p)
     QString message = QString::fromStdString(p->msg);
 #else
     QString trackerUrl(p->tracker_url());
-    QString message = QString::fromStdString(p->message());
+    const QString message = p->error_message();
 #endif
     qDebug("Received a tracker error for %s: %s", qUtf8Printable(trackerUrl), qUtf8Printable(message));
     m_trackerInfos[trackerUrl].lastMessage = message;
