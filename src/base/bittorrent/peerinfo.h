@@ -86,6 +86,7 @@ namespace BitTorrent
         bool isPlaintextEncrypted() const;
 
         PeerAddress address() const;
+        int port() const;
         QString client() const;
         QString pid() const;
         QString pidtoclient() const;
