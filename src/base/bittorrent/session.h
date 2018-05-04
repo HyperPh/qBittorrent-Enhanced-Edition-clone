@@ -32,6 +32,7 @@
 
 #include <vector>
 #include <libtorrent/version.hpp>
+#include <libtorrent/ip_filter.hpp>
 
 #include <QFile>
 #include <QHash>
@@ -250,9 +251,11 @@ namespace BitTorrent
         void setBandwidthSchedulerEnabled(bool enabled);
 
         uint saveResumeDataInterval() const;
-        bool isAutoBanUnknownPeerEnabled() const;
         void setSaveResumeDataInterval(uint value);
+        bool isAutoBanUnknownPeerEnabled() const;
         void setAutoBanUnknownPeer(bool value);
+        bool isShowTrackerAuthWindow() const;
+        void setShowTrackerAuthWindow(bool value);
         int port() const;
         void setPort(int port);
         bool useRandomPort() const;
@@ -463,6 +466,8 @@ namespace BitTorrent
         void populateAdditionalTrackers();
         void enableIPFilter();
         void disableIPFilter();
+        int parseOfflineFilterFile(QString ipDat, libtorrent::ip_filter &filter);
+        void loadOfflineFilter();
 
         bool addTorrent_impl(AddTorrentData addData, const MagnetUri &magnetUri,
                              TorrentInfo torrentInfo = TorrentInfo(),
@@ -554,6 +559,7 @@ namespace BitTorrent
         CachedSettingValue<bool> m_isBandwidthSchedulerEnabled;
         CachedSettingValue<uint> m_saveResumeDataInterval;
         CachedSettingValue<bool> m_autoBanUnknownPeer;
+        CachedSettingValue<bool> m_showTrackerAuthWindow;
         CachedSettingValue<int> m_port;
         CachedSettingValue<bool> m_useRandomPort;
         CachedSettingValue<QString> m_networkInterface;

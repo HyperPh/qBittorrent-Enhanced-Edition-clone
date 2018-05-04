@@ -1084,6 +1084,16 @@ void Preferences::setAutoBanUnknownPeer(const bool checked)
     setValue("Preferences/Advanced/AutoBanUnknownPeer", checked);
 }
 
+bool Preferences::getShowTrackerAuthWindow() const
+{
+    return value("Preferences/Advanced/ShowTrackerAuthWindow", true).toBool();
+}
+
+void Preferences::setShowTrackerAuthWindow(const bool checked)
+{
+    setValue("Preferences/Advanced/ShowTrackerAuthWindow", checked);
+}
+
 // Stuff that don't appear in the Options GUI but are saved
 // in the same file.
 

@@ -196,6 +196,11 @@ PeerAddress PeerInfo::address() const
                        m_nativeInfo.ip.port());
 }
 
+int PeerInfo::port() const
+{
+    return m_nativeInfo.ip.port();
+}
+
 QString PeerInfo::client() const
 {
     return Utils::String::fromStdString(m_nativeInfo.client);
