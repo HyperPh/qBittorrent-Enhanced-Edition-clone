@@ -44,8 +44,10 @@
 #endif
 #include <QNetworkConfigurationManager>
 #include <QPointer>
+#include <QQueue>
 #include <QSet>
 #include <QStringList>
+#include <QTimer>
 #include <QVector>
 #include <QWaitCondition>
 
@@ -340,6 +342,10 @@ namespace BitTorrent
 
         uint saveResumeDataInterval() const;
         void setSaveResumeDataInterval(uint value);
+        bool isAutoBanUnknownPeerEnabled() const;
+        void setAutoBanUnknownPeer(bool value);
+        bool isShowTrackerAuthWindow() const;
+        void setShowTrackerAuthWindow(bool value);
         int port() const;
         void setPort(int port);
         bool useRandomPort() const;
@@ -461,6 +467,17 @@ namespace BitTorrent
         void setMaxRatioAction(MaxRatioAction act);
 
         void banIP(const QString &ip);
+        bool checkAccessFlags(const QString &ip);
+        void tempblockIP(const QString &ip);
+        void removeBlockedIP(const QString &ip);
+        void EraseIPFilter();
+
+        // Unban Timer
+        bool m_isActive = false;
+        QQueue<QString> q_bannedIPs;
+        QQueue<int64_t> q_UnbanTime;
+        QTimer *m_UnbanTimer;
+        void insertQueue(QString ip);
 
         bool isKnownTorrent(const InfoHash &hash) const;
         bool addTorrent(QString source, const AddTorrentParams &params = AddTorrentParams());
@@ -538,6 +555,9 @@ namespace BitTorrent
         void tagAdded(const QString &tag);
         void tagRemoved(const QString &tag);
 
+    public slots:
+        void processUnbanRequest();
+
     private slots:
         void configureDeferred();
         void readAlerts();
@@ -593,6 +613,8 @@ namespace BitTorrent
         void populateAdditionalTrackers();
         void enableIPFilter();
         void disableIPFilter();
+        int parseOfflineFilterFile(QString ipDat, libtorrent::ip_filter &filter);
+        void loadOfflineFilter();
 
         bool addTorrent_impl(AddTorrentData addData, const MagnetUri &magnetUri,
                              TorrentInfo torrentInfo = TorrentInfo(),
@@ -701,6 +723,8 @@ namespace BitTorrent
         CachedSettingValue<bool> m_isAltGlobalSpeedLimitEnabled;
         CachedSettingValue<bool> m_isBandwidthSchedulerEnabled;
         CachedSettingValue<uint> m_saveResumeDataInterval;
+        CachedSettingValue<bool> m_autoBanUnknownPeer;
+        CachedSettingValue<bool> m_showTrackerAuthWindow;
         CachedSettingValue<int> m_port;
         CachedSettingValue<bool> m_useRandomPort;
         CachedSettingValue<QString> m_networkInterface;

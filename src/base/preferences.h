@@ -290,6 +290,10 @@ public:
     TrayIcon::Style trayIconStyle() const;
     void setTrayIconStyle(TrayIcon::Style style);
 #endif
+    bool getAutoBanUnknownPeer() const;
+    void setAutoBanUnknownPeer(const bool checked);
+    bool getShowTrackerAuthWindow() const;
+    void setShowTrackerAuthWindow(const bool checked);
 
     // Stuff that don't appear in the Options GUI but are saved
     // in the same file.

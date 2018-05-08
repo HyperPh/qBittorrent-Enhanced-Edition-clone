@@ -333,6 +333,8 @@ Session::Session(QObject *parent)
     , m_isAltGlobalSpeedLimitEnabled(BITTORRENT_SESSION_KEY("UseAlternativeGlobalSpeedLimit"), false)
     , m_isBandwidthSchedulerEnabled(BITTORRENT_SESSION_KEY("BandwidthSchedulerEnabled"), false)
     , m_saveResumeDataInterval(BITTORRENT_SESSION_KEY("SaveResumeDataInterval"), 3)
+    , m_autoBanUnknownPeer(BITTORRENT_SESSION_KEY("AutoBanUnknownPeer"), false)
+    , m_showTrackerAuthWindow(BITTORRENT_SESSION_KEY("ShowTrackerAuthWindow"), true)
     , m_port(BITTORRENT_SESSION_KEY("Port"), 8999)
     , m_useRandomPort(BITTORRENT_SESSION_KEY("UseRandomPort"), false)
     , m_networkInterface(BITTORRENT_SESSION_KEY("Interface"))
@@ -491,6 +493,7 @@ Session::Session(QObject *parent)
         libt::ip_filter filter;
         processBannedIPs(filter);
         m_nativeSession->set_ip_filter(filter);
+        loadOfflineFilter();
     }
 
     m_categories = map_cast(m_storedCategories);
@@ -511,6 +514,11 @@ Session::Session(QObject *parent)
     m_resumeDataTimer = new QTimer(this);
     m_resumeDataTimer->setInterval(saveResumeDataInterval() * 60 * 1000);
     connect(m_resumeDataTimer, &QTimer::timeout, this, [this]() { generateResumeData(); });
+
+    // Ban Timer
+    m_UnbanTimer = new QTimer(this);
+    m_UnbanTimer->setInterval(500);
+    connect(m_UnbanTimer, &QTimer::timeout, this, &Session::processUnbanRequest);
 
     m_statistics = new Statistics(this);
 
@@ -1062,6 +1070,7 @@ void Session::configure()
             enableIPFilter();
         else
             disableIPFilter();
+        loadOfflineFilter();
         m_IPFilteringChanged = false;
     }
 
@@ -1888,6 +1897,51 @@ void Session::banIP(const QString &ip)
     }
 }
 
+bool Session::checkAccessFlags(const QString &ip)
+{
+    libt::ip_filter filter = m_nativeSession->get_ip_filter();
+    boost::system::error_code ec;
+    libt::address addr = libt::address::from_string(ip.toLatin1().constData(), ec);
+    Q_ASSERT(!ec);
+    if (ec) return false;
+    return filter.access(addr);
+}
+
+void Session::tempblockIP(const QString &ip)
+{
+    libt::ip_filter filter = m_nativeSession->get_ip_filter();
+    boost::system::error_code ec;
+    libt::address addr = libt::address::from_string(ip.toLatin1().constData(), ec);
+    Q_ASSERT(!ec);
+    if (ec) return;
+    filter.add_rule(addr, addr, libt::ip_filter::blocked);
+    m_nativeSession->set_ip_filter(filter);
+    insertQueue(ip);
+}
+
+void Session::removeBlockedIP(const QString &ip)
+{
+    libt::ip_filter filter = m_nativeSession->get_ip_filter();
+    boost::system::error_code ec;
+    libt::address addr = libt::address::from_string(ip.toLatin1().constData(), ec);
+    Q_ASSERT(!ec);
+    if (ec) return;
+    filter.add_rule(addr, addr, 0);
+    m_nativeSession->set_ip_filter(filter);
+}
+
+void Session::EraseIPFilter()
+{
+    q_bannedIPs.clear();
+    q_UnbanTime.clear();
+    if (isIPFilteringEnabled()) {
+        enableIPFilter();
+    } else {
+        disableIPFilter();
+        loadOfflineFilter();
+    }
+}
+
 // Delete a torrent from the session, given its hash
 // deleteLocalFiles = true means that the torrent will be removed from the hard-drive too
 bool Session::deleteTorrent(const QString &hash, bool deleteLocalFiles)
@@ -2690,6 +2744,30 @@ void Session::setSaveResumeDataInterval(uint value)
     if (value != saveResumeDataInterval()) {
         m_saveResumeDataInterval = value;
         m_resumeDataTimer->setInterval(value * 60 * 1000);
+    }
+}
+
+bool Session::isAutoBanUnknownPeerEnabled() const
+{
+    return m_autoBanUnknownPeer;
+}
+
+void Session::setAutoBanUnknownPeer(bool value)
+{
+    if (value != isAutoBanUnknownPeerEnabled()) {
+        m_autoBanUnknownPeer = value;
+    }
+}
+
+bool Session::isShowTrackerAuthWindow() const
+{
+    return m_showTrackerAuthWindow;
+}
+
+void Session::setShowTrackerAuthWindow(bool value)
+{
+    if (value != isShowTrackerAuthWindow()) {
+        m_showTrackerAuthWindow = value;
     }
 }
 
@@ -3737,6 +3815,220 @@ void Session::disableIPFilter()
     m_nativeSession->set_ip_filter(filter);
 }
 
+// Insert banned IP to Queue
+void Session::insertQueue(QString ip)
+{
+    q_bannedIPs.enqueue(ip);
+    q_UnbanTime.enqueue(QDateTime::currentMSecsSinceEpoch() + 60 * 60 * 1000);
+
+    if (!m_UnbanTimer->isActive()) {
+        m_UnbanTimer->start();
+    }
+}
+
+// Process Unban Queue
+void Session::processUnbanRequest()
+{
+    if (q_bannedIPs.isEmpty() && q_UnbanTime.isEmpty()) {
+        m_UnbanTimer->stop();
+    }
+    else if (m_isActive) {
+        return;
+    }
+    else {
+        m_isActive = true;
+        int64_t currentTime = QDateTime::currentMSecsSinceEpoch();
+        int64_t nextTime = q_UnbanTime.dequeue();
+        int delayTime = int(nextTime - currentTime);
+        QString nextIP = q_bannedIPs.dequeue();
+        if (delayTime < 0) {
+            QTimer::singleShot(0, [=] { BitTorrent::Session::instance()->removeBlockedIP(nextIP); m_isActive = false; });
+        }
+        else {
+            QTimer::singleShot(delayTime, [=] { BitTorrent::Session::instance()->removeBlockedIP(nextIP); m_isActive = false; });
+        }
+    }
+}
+
+// Handle ipfilter.dat
+int trim(char* const data, int start, int end)
+{
+    if (start >= end) return start;
+    int newStart = start;
+
+    for (int i = start; i <= end; ++i) {
+        if (isspace(data[i]) != 0) {
+            data[i] = '\0';
+        }
+        else {
+            newStart = i;
+            break;
+        }
+    }
+
+    for (int i = end; i >= start; --i) {
+        if (isspace(data[i]) != 0)
+            data[i] = '\0';
+        else
+            break;
+    }
+
+    return newStart;
+}
+
+int findAndNullDelimiter(char *const data, char delimiter, int start, int end)
+{
+    for (int i = start; i <= end; ++i) {
+        if (data[i] == delimiter) {
+            data[i] = '\0';
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+int Session::parseOfflineFilterFile(QString ipDat, libt::ip_filter &filter)
+{
+    int ruleCount = 0;
+    QFile file(ipDat);
+    if (!file.exists()) return ruleCount;
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        LogMsg(tr("I/O Error: Could not open IP filter file in read mode."), Log::CRITICAL);
+        return ruleCount;
+    }
+
+    std::vector<char> buffer(2 * 1024 * 1024, 0); // seems a bit faster than QVector
+    qint64 bytesRead = 0;
+    int offset = 0;
+    int start = 0;
+    int endOfLine = -1;
+    int nbLine = 0;
+
+    while (true) {
+        bytesRead = file.read(buffer.data() + offset, 2 * 1024 * 1024 - offset - 1);
+        if (bytesRead < 0)
+            break;
+        int dataSize = bytesRead + offset;
+        if (bytesRead == 0 && dataSize == 0)
+            break;
+
+        for (start = 0; start < dataSize; ++start) {
+            endOfLine = -1;
+            // The file might have ended without the last line having a newline
+            if (!(bytesRead == 0 && dataSize > 0)) {
+                for (int i = start; i < dataSize; ++i) {
+                    if (buffer[i] == '\n') {
+                        endOfLine = i;
+                        // We need to NULL the newline in case the line has only an IP range.
+                        // In that case the parser won't work for the end IP, because it ends
+                        // with the newline and not with a number.
+                        buffer[i] = '\0';
+                        break;
+                    }
+                }
+            }
+            else {
+                endOfLine = dataSize;
+                buffer[dataSize] = '\0';
+            }
+
+            if (endOfLine == -1) {
+                // read the next chunk from file
+                // but first move(copy) the leftover data to the front of the buffer
+                offset = dataSize - start;
+                memmove(buffer.data(), buffer.data() + start, offset);
+                break;
+            }
+            else {
+                ++nbLine;
+            }
+
+            if ((buffer[start] == '#')
+                || ((buffer[start] == '/') && ((start + 1 < dataSize) && (buffer[start + 1] == '/')))) {
+                start = endOfLine;
+                continue;
+            }
+
+            // Each line should follow this format:
+            // 001.009.096.105 - 001.009.096.105 , 000 , Some organization
+            // The 3rd entry is access level and if above 127 the IP range isn't blocked.
+            int firstComma = findAndNullDelimiter(buffer.data(), ',', start, endOfLine);
+            if (firstComma != -1)
+                findAndNullDelimiter(buffer.data(), ',', firstComma + 1, endOfLine);
+
+            // Check if there is an access value (apparently not mandatory)
+            if (firstComma != -1) {
+                // There is possibly one
+                const long int nbAccess = strtol(buffer.data() + firstComma + 1, nullptr, 10);
+                // Ignoring this rule because access value is too high
+                if (nbAccess > 127L) {
+                    start = endOfLine;
+                    continue;
+                }
+            }
+
+            // IP Range should be split by a dash
+            int endOfIPRange = ((firstComma == -1) ? (endOfLine - 1) : (firstComma - 1));
+            int delimIP = findAndNullDelimiter(buffer.data(), '-', start, endOfIPRange);
+            if (delimIP == -1) {
+                start = endOfLine;
+                continue;
+            }
+
+            boost::system::error_code ec;
+            int newStart = trim(buffer.data(), start, delimIP - 1);
+            libt::address startAddr = libt::address::from_string(buffer.data() + newStart, ec);
+            Q_ASSERT(!ec);
+            if (ec) {
+                start = endOfLine;
+                continue;
+            }
+
+            newStart = trim(buffer.data(), delimIP + 1, endOfIPRange);
+            libt::address endAddr = libt::address::from_string(buffer.data() + newStart, ec);
+            Q_ASSERT(!ec);
+            if (ec) {
+                start = endOfLine;
+                continue;
+            }
+
+            if ((startAddr.is_v4() != endAddr.is_v4())
+                || (startAddr.is_v6() != endAddr.is_v6())) {
+                start = endOfLine;
+                continue;
+            }
+
+            start = endOfLine;
+
+            filter.add_rule(startAddr, endAddr, libt::ip_filter::blocked);
+            ++ruleCount;
+        }
+
+        if (start >= dataSize)
+            offset = 0;
+    }
+
+    return ruleCount;
+}
+
+void Session::loadOfflineFilter() {
+    int Count = 0;
+    libt::ip_filter offlineFilter = m_nativeSession->get_ip_filter();
+
+#if defined(Q_OS_WIN)
+    Count = parseOfflineFilterFile("./ipfilter.dat", offlineFilter);
+#endif
+
+#if (defined(Q_OS_UNIX) && !defined(Q_OS_MAC))
+    Count = parseOfflineFilterFile(QDir::home().absoluteFilePath(".config")+"/qBittorrent/ipfilter.dat", offlineFilter);
+#endif
+
+    m_nativeSession->set_ip_filter(offlineFilter);
+    Logger::instance()->addMessage(tr("Successfully parsed the offline downloader IP filter: %1 rules were applied.", "%1 is a number").arg(Count));
+}
+
 void Session::recursiveTorrentDownload(const InfoHash &hash)
 {
     TorrentHandle *const torrent = m_torrents.value(hash);
@@ -3881,6 +4173,7 @@ void Session::handleIPFilterParsed(int ruleCount)
     }
     Logger::instance()->addMessage(tr("Successfully parsed the provided IP filter: %1 rules were applied.", "%1 is a number").arg(ruleCount));
     emit IPFilterParsed(false, ruleCount);
+    loadOfflineFilter();
 }
 
 void Session::handleIPFilterError()
