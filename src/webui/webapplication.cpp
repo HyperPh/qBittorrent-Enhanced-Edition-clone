@@ -865,13 +865,6 @@ void WebApplication::action_command_tempblockPeer()
     BitTorrent::Session::instance()->tempblockIP(ip);
     Logger::instance()->addMessage(tr("Peer '%1' banned via Web API.").arg(ip));
     print(QByteArray("Done."), Http::CONTENT_TYPE_TXT);
-
-    bannedIPs.enqueue(ip);
-    UnbanTime.enqueue(QDateTime::currentMSecsSinceEpoch() + 60 * 60 * 1000);
-
-    if (!m_UnbanTimer->isActive()) {
-        m_UnbanTimer->start();
-    }
 }
 
 void WebApplication::action_command_resetIPFilter()
@@ -879,10 +872,8 @@ void WebApplication::action_command_resetIPFilter()
     CHECK_URI(0);
     qDebug("IP Filter erased via Web API.");
     Logger::instance()->addMessage(tr("IP Filter erased via Web API."), Log::INFO);
-    BitTorrent::Session::instance()->EraseIPFilter();
+    BitTorrent::Session::instance()->eraseIPFilter();
     print(QByteArray("Erased."), Http::CONTENT_TYPE_TXT);
-    bannedIPs.clear();
-    UnbanTime.clear();
 }
 
 bool WebApplication::isPublicScope()

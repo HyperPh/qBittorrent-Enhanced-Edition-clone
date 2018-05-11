@@ -180,6 +180,8 @@
   <input type="text" id="ipfilter_text"/><br/>
   <input type="checkbox" id="ipfilter_trackers_checkbox"/>
   <label for="ipfilter_trackers_checkbox">QBT_TR(Apply to trackers)QBT_TR[CONTEXT=OptionsDialog]</label>
+  <input type="checkbox" id="auto_ban_unknown_peer_checkbox" />
+  <label for="auto_ban_unknown_peer_checkbox">QBT_TR(Auto Ban Unknown Client From China)QBT_TR[CONTEXT=OptionsDialog]</label>
 </fieldset>
 </div>
 
@@ -915,6 +917,7 @@ loadPreferences = function() {
                     $('ipfilter_enabled_checkbox').setProperty('checked', pref.ip_filter_enabled);
                     $('ipfilter_text').setProperty('value', pref.ip_filter_path);
                     $('ipfilter_trackers_checkbox').setProperty('checked', pref.ip_filter_trackers);
+                    $('auto_ban_unknown_peer_checkbox').setProperty('checked', pref.auto_ban_unknown_peer);
                     updateFilterSettings();
 
                     // Speed tab
@@ -1149,6 +1152,7 @@ applyPreferences = function() {
   settings.set('ip_filter_enabled', $('ipfilter_enabled_checkbox').getProperty('checked'));
   settings.set('ip_filter_path', $('ipfilter_text').getProperty('value'));
   settings.set('ip_filter_trackers', $('ipfilter_trackers_checkbox').getProperty('checked'));
+  settings.set('auto_ban_unknown_peer', $('auto_ban_unknown_peer_checkbox').getProperty('checked'));
 
   // Speed tab
   // Global Rate Limits
