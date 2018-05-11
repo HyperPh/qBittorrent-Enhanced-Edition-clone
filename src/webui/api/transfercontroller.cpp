@@ -143,6 +143,6 @@ void TransferController::tempblockPeerAction()
 
 void TransferController::resetIPFilterAction()
 {
-    BitTorrent::Session::instance()->EraseIPFilter();
+    BitTorrent::Session::instance()->eraseIPFilter();
     setResult(QLatin1String("Erased."));
 }
