@@ -72,6 +72,7 @@
 #include <libtorrent/torrent_info.hpp>
 
 #include "base/algorithm.h"
+#include "base/bittorrent/peerinfo.h"
 #include "base/logger.h"
 #include "base/net/downloadhandler.h"
 #include "base/net/downloadmanager.h"
@@ -515,10 +516,16 @@ Session::Session(QObject *parent)
     m_resumeDataTimer->setInterval(saveResumeDataInterval() * 60 * 1000);
     connect(m_resumeDataTimer, &QTimer::timeout, this, [this]() { generateResumeData(); });
 
+    // Unban Timer
+    m_unbanTimer = new QTimer(this);
+    m_unbanTimer->setInterval(500);
+    connect(m_unbanTimer, &QTimer::timeout, this, &Session::processUnbanRequest);
+
     // Ban Timer
-    m_UnbanTimer = new QTimer(this);
-    m_UnbanTimer->setInterval(500);
-    connect(m_UnbanTimer, &QTimer::timeout, this, &Session::processUnbanRequest);
+    m_banTimer = new QTimer(this);
+    m_banTimer->setInterval(500);
+    connect(m_banTimer, &QTimer::timeout, this, &Session::autoBanBadClient);
+    m_banTimer->start();
 
     m_statistics = new Statistics(this);
 
@@ -1930,15 +1937,59 @@ void Session::removeBlockedIP(const QString &ip)
     m_nativeSession->set_ip_filter(filter);
 }
 
-void Session::EraseIPFilter()
+void Session::eraseIPFilter()
 {
     q_bannedIPs.clear();
-    q_UnbanTime.clear();
+    q_unbanTime.clear();
     if (isIPFilteringEnabled()) {
         enableIPFilter();
     } else {
         disableIPFilter();
         loadOfflineFilter();
+    }
+}
+
+void Session::autoBanBadClient()
+{
+    const BitTorrent::SessionStatus tStatus = BitTorrent::Session::instance()->status();
+    if (tStatus.peersCount > 0) {
+        bool m_AutoBan = BitTorrent::Session::instance()->isAutoBanUnknownPeerEnabled();
+        foreach (BitTorrent::TorrentHandle *const torrent, BitTorrent::Session::instance()->torrents()) {
+            QList<BitTorrent::PeerInfo> peers = torrent->peers();
+            foreach (const BitTorrent::PeerInfo &peer, peers) {
+                BitTorrent::PeerAddress addr = peer.address();
+                if (addr.ip.isNull()) continue;
+                QString ip = addr.ip.toString();
+                int port = peer.port();
+                QString client = peer.client();
+                QString ptoc = peer.pidtoclient();
+                QString pid = peer.pid().left(8);
+                QString country = peer.country();
+
+                QRegExp IDFilter("-(XL|SD|XF|QD|BN)(\\d+)-");
+                QRegExp UAFilter("\\d+.\\d+.\\d+.\\d+");
+                if (IDFilter.exactMatch(pid) || UAFilter.exactMatch(client)) {
+                    qDebug("Auto Banning bad Peer %s...", ip.toLocal8Bit().data());
+                    Logger::instance()->addMessage(tr("Auto banning bad Peer '%1'...'%2'...'%3'...'%4'").arg(ip).arg(pid).arg(ptoc).arg(country));
+                    tempblockIP(ip);
+                    continue;
+                }
+
+                if(m_AutoBan) {
+                    if (client.contains("Unknown") && country == "CN") {
+                        qDebug("Auto Banning Unknown Peer %s...", ip.toLocal8Bit().data());
+                        Logger::instance()->addMessage(tr("Auto banning Unknown Peer '%1'...'%2'...'%3'...'%4'").arg(ip).arg(pid).arg(ptoc).arg(country));
+                        tempblockIP(ip);
+                        continue;
+                    }
+                    if (port >= 65000 && country == "CN" && client.contains("Transmission")) {
+                        qDebug("Auto Banning Offline Downloader %s...", ip.toLocal8Bit().data());
+                        Logger::instance()->addMessage(tr("Auto banning Offline Downloader '%1:%2'...'%3'...'%4'...'%5'").arg(ip).arg(port).arg(pid).arg(ptoc).arg(country));
+                        tempblockIP(ip);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -3819,18 +3870,18 @@ void Session::disableIPFilter()
 void Session::insertQueue(QString ip)
 {
     q_bannedIPs.enqueue(ip);
-    q_UnbanTime.enqueue(QDateTime::currentMSecsSinceEpoch() + 60 * 60 * 1000);
+    q_unbanTime.enqueue(QDateTime::currentMSecsSinceEpoch() + 60 * 60 * 1000);
 
-    if (!m_UnbanTimer->isActive()) {
-        m_UnbanTimer->start();
+    if (!m_unbanTimer->isActive()) {
+        m_unbanTimer->start();
     }
 }
 
 // Process Unban Queue
 void Session::processUnbanRequest()
 {
-    if (q_bannedIPs.isEmpty() && q_UnbanTime.isEmpty()) {
-        m_UnbanTimer->stop();
+    if (q_bannedIPs.isEmpty() && q_unbanTime.isEmpty()) {
+        m_unbanTimer->stop();
     }
     else if (m_isActive) {
         return;
@@ -3838,7 +3889,7 @@ void Session::processUnbanRequest()
     else {
         m_isActive = true;
         int64_t currentTime = QDateTime::currentMSecsSinceEpoch();
-        int64_t nextTime = q_UnbanTime.dequeue();
+        int64_t nextTime = q_unbanTime.dequeue();
         int delayTime = int(nextTime - currentTime);
         QString nextIP = q_bannedIPs.dequeue();
         if (delayTime < 0) {

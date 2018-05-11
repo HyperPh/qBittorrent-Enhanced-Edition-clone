@@ -1554,44 +1554,6 @@ void MainWindow::updateGUI()
                 , Utils::Misc::friendlyUnit(status.payloadUploadRate, true)
                 , QBT_VERSION));
     }
-
-    //New Method
-    bool m_AutoBan = BitTorrent::Session::instance()->isAutoBanUnknownPeerEnabled();
-    foreach (BitTorrent::TorrentHandle *const torrent, BitTorrent::Session::instance()->torrents()) {
-        QList<BitTorrent::PeerInfo> peers = torrent->peers();
-        foreach (const BitTorrent::PeerInfo &peer, peers) {
-            BitTorrent::PeerAddress addr = peer.address();
-            if (addr.ip.isNull()) continue;
-            QString ip = addr.ip.toString();
-            int port = peer.port();
-            QString client = peer.client();
-            QString ptoc = peer.pidtoclient();
-            QString pid = peer.pid().left(8);
-            QString country = peer.country();
-
-            QRegExp filter("-(XL|SD|XF|QD|BN)(\\d+)-");
-            if (filter.exactMatch(pid)) {
-                qDebug("Auto Banning bad Peer %s...", ip.toLocal8Bit().data());
-                Logger::instance()->addMessage(tr("Auto banning bad Peer '%1'...'%2'...'%3'...'%4'").arg(ip).arg(pid).arg(ptoc).arg(country));
-                BitTorrent::Session::instance()->tempblockIP(ip);
-                continue;
-            }
-
-            if(m_AutoBan) {
-                if (client.contains("Unknown") && country == "CN") {
-                    qDebug("Auto Banning Unknown Peer %s...", ip.toLocal8Bit().data());
-                    Logger::instance()->addMessage(tr("Auto banning Unknown Peer '%1'...'%2'...'%3'...'%4'").arg(ip).arg(pid).arg(ptoc).arg(country));
-                    BitTorrent::Session::instance()->tempblockIP(ip);
-                    continue;
-                }
-                if (port >= 65000 && country == "CN" && client.contains("Transmission")) {
-                    qDebug("Auto Banning Offline Downloader %s...", ip.toLocal8Bit().data());
-                    Logger::instance()->addMessage(tr("Auto banning Offline Downloader '%1:%2'...'%3'...'%4'...'%5'").arg(ip).arg(port).arg(pid).arg(ptoc).arg(country));
-                    BitTorrent::Session::instance()->tempblockIP(ip);
-                }
-            }
-        }
-    }
 }
 
 void MainWindow::showNotificationBaloon(QString title, QString msg) const

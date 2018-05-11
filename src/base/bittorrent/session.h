@@ -470,13 +470,15 @@ namespace BitTorrent
         bool checkAccessFlags(const QString &ip);
         void tempblockIP(const QString &ip);
         void removeBlockedIP(const QString &ip);
-        void EraseIPFilter();
+        void eraseIPFilter();
+        void autoBanBadClient();
 
         // Unban Timer
         bool m_isActive = false;
         QQueue<QString> q_bannedIPs;
-        QQueue<int64_t> q_UnbanTime;
-        QTimer *m_UnbanTimer;
+        QQueue<int64_t> q_unbanTime;
+        QTimer *m_unbanTimer;
+        QTimer *m_banTimer;
         void insertQueue(QString ip);
 
         bool isKnownTorrent(const InfoHash &hash) const;
