@@ -276,9 +276,6 @@ MainWindow::MainWindow(QWidget *parent)
     m_pwr = new PowerManagement(this);
     m_preventTimer = new QTimer(this);
     connect(m_preventTimer, SIGNAL(timeout()), SLOT(checkForActiveTorrents()));
-    m_UnbanTimer = new QTimer(this);
-    m_UnbanTimer->setInterval(500);
-    connect(m_UnbanTimer, SIGNAL(timeout()), SLOT(processUnbanRequest()));
 
     // Configure BT session according to options
     loadPreferences(false);
@@ -1319,40 +1316,6 @@ void MainWindow::trackerAuthenticationRequired(BitTorrent::TorrentHandle *const 
         new trackerLogin(this, torrent);
 }
 
-// Unban Timer
-void MainWindow::processUnbanRequest()
-{
-    if (bannedIPs.isEmpty() && UnbanTime.isEmpty()) {
-        m_UnbanTimer->stop();
-    }
-    else if (m_isActive) {
-        return;
-    }
-    else {
-        m_isActive = true;
-        int64_t currentTime = QDateTime::currentMSecsSinceEpoch();
-        int64_t nextTime = UnbanTime.dequeue();
-        int delayTime = int(nextTime - currentTime);
-        QString nextIP = bannedIPs.dequeue();
-        if (delayTime < 0) {
-            QTimer::singleShot(0, [=] { BitTorrent::Session::instance()->removeBlockedIP(nextIP); m_isActive = false; });
-        }
-        else {
-            QTimer::singleShot(delayTime, [=] { BitTorrent::Session::instance()->removeBlockedIP(nextIP); m_isActive = false; });
-        }
-    }
-}
-
-void MainWindow::insertQueue(QString ip)
-{
-    bannedIPs.enqueue(ip);
-    UnbanTime.enqueue(QDateTime::currentMSecsSinceEpoch() + 60 * 60 * 1000);
-
-    if (!m_UnbanTimer->isActive()) {
-        m_UnbanTimer->start();
-    }
-}
-
 // Check connection status and display right icon
 void MainWindow::updateGUI()
 {
@@ -1384,47 +1347,6 @@ void MainWindow::updateGUI()
                        .arg(Utils::Misc::friendlyUnit(status.payloadDownloadRate(), true))
                        .arg(Utils::Misc::friendlyUnit(status.payloadUploadRate(), true))
                        .arg(QBT_VERSION));
-    }
-
-    //New Method
-    bool m_AutoBan = BitTorrent::Session::instance()->isAutoBanUnknownPeerEnabled();
-    foreach (BitTorrent::TorrentHandle *const torrent, BitTorrent::Session::instance()->torrents()) {
-        QList<BitTorrent::PeerInfo> peers = torrent->peers();
-        foreach (const BitTorrent::PeerInfo &peer, peers) {
-            BitTorrent::PeerAddress addr = peer.address();
-            if (addr.ip.isNull()) continue;
-            QString ip = addr.ip.toString();
-            int port = peer.port();
-            QString client = peer.client();
-            QString ptoc = peer.pidtoclient();
-            QString pid = peer.pid().left(8);
-            QString country = peer.country();
-
-            QRegExp filter("-(XL|SD|XF|QD|BN)(\\d+)-");
-            if (filter.exactMatch(pid)) {
-                qDebug("Auto Banning bad Peer %s...", ip.toLocal8Bit().data());
-                Logger::instance()->addMessage(tr("Auto banning bad Peer '%1'...'%2'...'%3'...'%4'").arg(ip).arg(pid).arg(ptoc).arg(country));
-                BitTorrent::Session::instance()->tempblockIP(ip);
-                insertQueue(ip);
-                continue;
-            }
-
-            if(m_AutoBan) {
-                if (client.contains("Unknown") && country == "CN") {
-                    qDebug("Auto Banning Unknown Peer %s...", ip.toLocal8Bit().data());
-                    Logger::instance()->addMessage(tr("Auto banning Unknown Peer '%1'...'%2'...'%3'...'%4'").arg(ip).arg(pid).arg(ptoc).arg(country));
-                    BitTorrent::Session::instance()->tempblockIP(ip);
-                    insertQueue(ip);
-                    continue;
-                }
-                if (port >= 65000 && country == "CN" && client.contains("Transmission")) {
-                    qDebug("Auto Banning Offline Downloader %s...", ip.toLocal8Bit().data());
-                    Logger::instance()->addMessage(tr("Auto banning Offline Downloader '%1:%2'...'%3'...'%4'...'%5'").arg(ip).arg(port).arg(pid).arg(ptoc).arg(country));
-                    BitTorrent::Session::instance()->tempblockIP(ip);
-                    insertQueue(ip);
-                }
-            }
-        }
     }
 }
 

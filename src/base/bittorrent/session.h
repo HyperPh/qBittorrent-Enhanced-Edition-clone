@@ -42,7 +42,9 @@
 #endif
 #include <QNetworkConfigurationManager>
 #include <QPointer>
+#include <QQueue>
 #include <QStringList>
+#include <QTimer>
 #include <QVector>
 #include <QWaitCondition>
 
@@ -350,8 +352,17 @@ namespace BitTorrent
         bool checkAccessFlags(const QString &ip);
         void tempblockIP(const QString &ip);
         void removeBlockedIP(const QString &ip);
-        void EraseIPFilter();
+        void eraseIPFilter();
         void unbanIP();
+        void autoBanBadClient();
+
+        // Unban Timer
+        bool m_isActive = false;
+        QQueue<QString> q_bannedIPs;
+        QQueue<int64_t> q_unbanTime;
+        QTimer *m_unbanTimer;
+        QTimer *m_banTimer;
+        void insertQueue(QString ip);
 
         bool isKnownTorrent(const InfoHash &hash) const;
         bool addTorrent(QString source, const AddTorrentParams &params = AddTorrentParams());
@@ -421,6 +432,9 @@ namespace BitTorrent
         void categoryAdded(const QString &categoryName);
         void categoryRemoved(const QString &categoryName);
         void subcategoriesSupportChanged();
+
+    public slots:
+        void processUnbanRequest();
 
     private slots:
         void configureDeferred();

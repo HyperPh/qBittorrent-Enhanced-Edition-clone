@@ -168,7 +168,7 @@ void AdvancedSettings::saveAdvancedSettings()
     // Announce IP
     QHostAddress addr(txtAnnounceIP.text().trimmed());
     session->setAnnounceIP(addr.isNull() ? "" : addr.toString());
-    // Enable Auto ban Unknown Peer
+    // Auto ban Unknown Peer
     session->setAutoBanUnknownPeer(cb_auto_ban_unknown_peer.isChecked());
     // Show Tracker Authenticaion Window
     session->setShowTrackerAuthWindow(cb_show_tracker_auth_window.isChecked());
