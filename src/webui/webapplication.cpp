@@ -68,12 +68,12 @@
 
 constexpr int MAX_ALLOWED_FILESIZE = 10 * 1024 * 1024;
 
-const QString PATH_PREFIX_IMAGES {"/images/"};
-const QString PATH_PREFIX_THEME {"/theme/"};
-const QString WWW_FOLDER {":/www"};
-const QString PUBLIC_FOLDER {"/public"};
-const QString PRIVATE_FOLDER {"/private"};
-const QString MAX_AGE_MONTH {"public, max-age=2592000"};
+const QString PATH_PREFIX_IMAGES {QStringLiteral("/images/")};
+const QString PATH_PREFIX_THEME {QStringLiteral("/theme/")};
+const QString WWW_FOLDER {QStringLiteral(":/www")};
+const QString PUBLIC_FOLDER {QStringLiteral("/public")};
+const QString PRIVATE_FOLDER {QStringLiteral("/private")};
+const QString MAX_AGE_MONTH {QStringLiteral("public, max-age=2592000")};
 
 namespace
 {
@@ -95,33 +95,32 @@ namespace
         return ret;
     }
 
-    void translateDocument(QString &data)
+    void translateDocument(const QString &locale, QString &data)
     {
         const QRegExp regex("QBT_TR\\((([^\\)]|\\)(?!QBT_TR))+)\\)QBT_TR(\\[CONTEXT=([a-zA-Z_][a-zA-Z0-9_]*)\\])");
         const QRegExp mnemonic("\\(?&([a-zA-Z]?\\))?");
+
+        const bool isTranslationNeeded = !locale.startsWith("en")
+            || locale.startsWith("en_AU") || locale.startsWith("en_GB");
+
         int i = 0;
         bool found = true;
-
-        const QString locale = Preferences::instance()->getLocale();
-        bool isTranslationNeeded = !locale.startsWith("en") || locale.startsWith("en_AU") || locale.startsWith("en_GB");
-
         while (i < data.size() && found) {
             i = regex.indexIn(data, i);
             if (i >= 0) {
-                //qDebug("Found translatable string: %s", regex.cap(1).toUtf8().data());
-                QByteArray word = regex.cap(1).toUtf8();
+                const QString word = regex.cap(1);
+                const QString context = regex.cap(4);
 
-                QString translation = word;
-                if (isTranslationNeeded) {
-                    QString context = regex.cap(4);
-                    translation = qApp->translate(context.toUtf8().constData(), word.constData(), 0, 1);
-                }
+                QString translation = isTranslationNeeded
+                    ? qApp->translate(context.toUtf8().constData(), word.toUtf8().constData(), nullptr, 1)
+                    : word;
+
                 // Remove keyboard shortcuts
                 translation.replace(mnemonic, "");
 
                 // Use HTML code for quotes to prevent issues with JS
-                translation.replace("'", "&#39;");
-                translation.replace("\"", "&#34;");
+                translation.replace('\'', "&#39;");
+                translation.replace('\"', "&#34;");
 
                 data.replace(i, regex.matchedLength(), translation);
                 i += translation.length();
@@ -268,66 +267,67 @@ void WebApplication::doProcessRequest()
         {
             QString scope;
             QString action;
+            std::function<void ()> convertFunc;
         };
         const QMap<QString, APICompatInfo> APICompatMapping {
-            {"sync/maindata", {"sync", "maindata"}},
-            {"sync/torrent_peers", {"sync", "torrentPeers"}},
+            {"sync/maindata", {"sync", "maindata", nullptr}},
+            {"sync/torrent_peers", {"sync", "torrentPeers", nullptr}},
 
-            {"login", {"auth", "login"}},
-            {"logout", {"auth", "logout"}},
+            {"login", {"auth", "login", nullptr}},
+            {"logout", {"auth", "logout", nullptr}},
 
-            {"command/shutdown", {"app", "shutdown"}},
-            {"query/preferences", {"app", "preferences"}},
-            {"command/setPreferences", {"app", "setPreferences"}},
-            {"command/getSavePath", {"app", "defaultSavePath"}},
+            {"command/shutdown", {"app", "shutdown", nullptr}},
+            {"query/preferences", {"app", "preferences", nullptr}},
+            {"command/setPreferences", {"app", "setPreferences", nullptr}},
+            {"command/getSavePath", {"app", "defaultSavePath", nullptr}},
 
-            {"query/getLog", {"log", "main"}},
-            {"query/getPeerLog", {"log", "peers"}},
+            {"query/getLog", {"log", "main", nullptr}},
+            {"query/getPeerLog", {"log", "peers", nullptr}},
 
-            {"query/torrents", {"torrents", "info"}},
-            {"query/propertiesGeneral", {"torrents", "properties"}},
-            {"query/propertiesTrackers", {"torrents", "trackers"}},
-            {"query/propertiesWebSeeds", {"torrents", "webseeds"}},
-            {"query/propertiesFiles", {"torrents", "files"}},
-            {"query/getPieceHashes", {"torrents", "pieceHashes"}},
-            {"query/getPieceStates", {"torrents", "pieceStates"}},
-            {"command/resume", {"torrents", "resume"}},
-            {"command/pause", {"torrents", "pause"}},
-            {"command/recheck", {"torrents", "recheck"}},
-            {"command/resumeAll", {"torrents", "resume"}},
-            {"command/pauseAll", {"torrents", "pause"}},
-            {"command/rename", {"torrents", "rename"}},
-            {"command/download", {"torrents", "add"}},
-            {"command/upload", {"torrents", "add"}},
-            {"command/delete", {"torrents", "delete"}},
-            {"command/deletePerm", {"torrents", "delete"}},
-            {"command/addTrackers", {"torrents", "addTrackers"}},
-            {"command/setFilePrio", {"torrents", "filePrio"}},
-            {"command/setCategory", {"torrents", "setCategory"}},
-            {"command/addCategory", {"torrents", "createCategory"}},
-            {"command/removeCategories", {"torrents", "removeCategories"}},
-            {"command/getTorrentsUpLimit", {"torrents", "uploadLimit"}},
-            {"command/getTorrentsDlLimit", {"torrents", "downloadLimit"}},
-            {"command/setTorrentsUpLimit", {"torrents", "setUploadLimit"}},
-            {"command/setTorrentsDlLimit", {"torrents", "setDownloadLimit"}},
-            {"command/increasePrio", {"torrents", "increasePrio"}},
-            {"command/decreasePrio", {"torrents", "decreasePrio"}},
-            {"command/topPrio", {"torrents", "topPrio"}},
-            {"command/bottomPrio", {"torrents", "bottomPrio"}},
-            {"command/setLocation", {"torrents", "setLocation"}},
-            {"command/setAutoTMM", {"torrents", "setAutoManagement"}},
-            {"command/setSuperSeeding", {"torrents", "setSuperSeeding"}},
-            {"command/setForceStart", {"torrents", "setForceStart"}},
-            {"command/toggleSequentialDownload", {"torrents", "toggleSequentialDownload"}},
-            {"command/toggleFirstLastPiecePrio", {"torrents", "toggleFirstLastPiecePrio"}},
+            {"query/torrents", {"torrents", "info", nullptr}},
+            {"query/propertiesGeneral", {"torrents", "properties", nullptr}},
+            {"query/propertiesTrackers", {"torrents", "trackers", nullptr}},
+            {"query/propertiesWebSeeds", {"torrents", "webseeds", nullptr}},
+            {"query/propertiesFiles", {"torrents", "files", nullptr}},
+            {"query/getPieceHashes", {"torrents", "pieceHashes", nullptr}},
+            {"query/getPieceStates", {"torrents", "pieceStates", nullptr}},
+            {"command/resume", {"torrents", "resume", [this]() { m_params["hashes"] = m_params.take("hash"); }}},
+            {"command/pause", {"torrents", "pause", [this]() { m_params["hashes"] = m_params.take("hash"); }}},
+            {"command/recheck", {"torrents", "recheck", [this]() { m_params["hashes"] = m_params.take("hash"); }}},
+            {"command/resumeAll", {"torrents", "resume", [this]() { m_params["hashes"] = "all"; }}},
+            {"command/pauseAll", {"torrents", "pause", [this]() { m_params["hashes"] = "all"; }}},
+            {"command/rename", {"torrents", "rename", nullptr}},
+            {"command/download", {"torrents", "add", nullptr}},
+            {"command/upload", {"torrents", "add", nullptr}},
+            {"command/delete", {"torrents", "delete", [this]() { m_params["deleteFiles"] = "false"; }}},
+            {"command/deletePerm", {"torrents", "delete", [this]() { m_params["deleteFiles"] = "true"; }}},
+            {"command/addTrackers", {"torrents", "addTrackers", nullptr}},
+            {"command/setFilePrio", {"torrents", "filePrio", nullptr}},
+            {"command/setCategory", {"torrents", "setCategory", nullptr}},
+            {"command/addCategory", {"torrents", "createCategory", nullptr}},
+            {"command/removeCategories", {"torrents", "removeCategories", nullptr}},
+            {"command/getTorrentsUpLimit", {"torrents", "uploadLimit", nullptr}},
+            {"command/getTorrentsDlLimit", {"torrents", "downloadLimit", nullptr}},
+            {"command/setTorrentsUpLimit", {"torrents", "setUploadLimit", nullptr}},
+            {"command/setTorrentsDlLimit", {"torrents", "setDownloadLimit", nullptr}},
+            {"command/increasePrio", {"torrents", "increasePrio", nullptr}},
+            {"command/decreasePrio", {"torrents", "decreasePrio", nullptr}},
+            {"command/topPrio", {"torrents", "topPrio", nullptr}},
+            {"command/bottomPrio", {"torrents", "bottomPrio", nullptr}},
+            {"command/setLocation", {"torrents", "setLocation", nullptr}},
+            {"command/setAutoTMM", {"torrents", "setAutoManagement", nullptr}},
+            {"command/setSuperSeeding", {"torrents", "setSuperSeeding", nullptr}},
+            {"command/setForceStart", {"torrents", "setForceStart", nullptr}},
+            {"command/toggleSequentialDownload", {"torrents", "toggleSequentialDownload", nullptr}},
+            {"command/toggleFirstLastPiecePrio", {"torrents", "toggleFirstLastPiecePrio", nullptr}},
 
-            {"query/transferInfo", {"transfer", "info"}},
-            {"command/alternativeSpeedLimitsEnabled", {"transfer", "speedLimitsMode"}},
-            {"command/toggleAlternativeSpeedLimits", {"transfer", "toggleSpeedLimitsMode"}},
-            {"command/getGlobalUpLimit", {"transfer", "uploadLimit"}},
-            {"command/getGlobalDlLimit", {"transfer", "downloadLimit"}},
-            {"command/setGlobalUpLimit", {"transfer", "setUploadLimit"}},
-            {"command/setGlobalDlLimit", {"transfer", "setDownloadLimit"}}
+            {"query/transferInfo", {"transfer", "info", nullptr}},
+            {"command/alternativeSpeedLimitsEnabled", {"transfer", "speedLimitsMode", nullptr}},
+            {"command/toggleAlternativeSpeedLimits", {"transfer", "toggleSpeedLimitsMode", nullptr}},
+            {"command/getGlobalUpLimit", {"transfer", "uploadLimit", nullptr}},
+            {"command/getGlobalDlLimit", {"transfer", "downloadLimit", nullptr}},
+            {"command/setGlobalUpLimit", {"transfer", "setUploadLimit", nullptr}},
+            {"command/setGlobalDlLimit", {"transfer", "setDownloadLimit", nullptr}}
         };
 
         const QString legacyAction {match.captured(QLatin1String("action"))};
@@ -335,15 +335,8 @@ void WebApplication::doProcessRequest()
 
         scope = compatInfo.scope;
         action = compatInfo.action;
-
-        if (legacyAction == QLatin1String("command/pauseAll"))
-            m_params["hashes"] = "all";
-        else if (legacyAction == QLatin1String("command/resumeAll"))
-            m_params["hashes"] = "all";
-        else if (legacyAction == QLatin1String("command/delete"))
-            m_params["deleteFiles"] = "false";
-        else if (legacyAction == QLatin1String("command/deletePerm"))
-            m_params["deleteFiles"] = "true";
+        if (compatInfo.convertFunc)
+            compatInfo.convertFunc();
 
         const QString hash {match.captured(QLatin1String("hash"))};
         if (!hash.isEmpty())
@@ -420,7 +413,7 @@ void WebApplication::configure()
 {
     const auto pref = Preferences::instance();
 
-    m_domainList = Preferences::instance()->getServerDomains().split(';', QString::SkipEmptyParts);
+    m_domainList = pref->getServerDomains().split(';', QString::SkipEmptyParts);
     std::for_each(m_domainList.begin(), m_domainList.end(), [](QString &entry) { entry = entry.trimmed(); });
 
     const QString rootFolder = Utils::Fs::expandPathAbs(
@@ -428,6 +421,12 @@ void WebApplication::configure()
     if (rootFolder != m_rootFolder) {
         m_translatedFiles.clear();
         m_rootFolder = rootFolder;
+    }
+
+    const QString newLocale = pref->getLocale();
+    if (m_currentLocale != newLocale) {
+        m_currentLocale = newLocale;
+        m_translatedFiles.clear();
     }
 }
 
@@ -476,7 +475,7 @@ void WebApplication::sendFile(const QString &path)
     // Translate the file
     if (isTranslatable) {
         QString dataStr {data};
-        translateDocument(dataStr);
+        translateDocument(m_currentLocale, dataStr);
         data = dataStr.toUtf8();
 
         m_translatedFiles[path] = {data, lastModified}; // caching translated file

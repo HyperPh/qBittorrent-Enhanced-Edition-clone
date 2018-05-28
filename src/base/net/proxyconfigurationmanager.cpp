@@ -27,9 +27,10 @@
  */
 
 #include "proxyconfigurationmanager.h"
+
 #include "base/settingsstorage.h"
 
-#define SETTINGS_KEY(name) "Network/Proxy/" name
+#define SETTINGS_KEY(name) QStringLiteral("Network/Proxy/" name)
 const QString KEY_ONLY_FOR_TORRENTS = SETTINGS_KEY("OnlyForTorrents");
 const QString KEY_TYPE = SETTINGS_KEY("Type");
 const QString KEY_IP = SETTINGS_KEY("IP");
@@ -80,7 +81,7 @@ void ProxyConfigurationManager::freeInstance()
 {
     if (m_instance) {
         delete m_instance;
-        m_instance = 0;
+        m_instance = nullptr;
     }
 }
 

@@ -73,7 +73,7 @@ public:
     void updatePlugin(const QString &name);
     void installPlugin(const QString &source);
     bool uninstallPlugin(const QString &name);
-    static void updateIconPath(PluginInfo * const plugin);
+    static void updateIconPath(PluginInfo *const plugin);
     void checkForUpdates();
 
     SearchHandler *startSearch(const QString &pattern, const QString &category, const QStringList &usedPlugins);
@@ -111,7 +111,6 @@ private:
     static QString pluginPath(const QString &name);
 
     static QPointer<SearchPluginManager> m_instance;
-    static const QHash<QString, QString> m_categoryNames;
 
     const QString m_updateUrl;
 

@@ -48,10 +48,10 @@ const char DEFAULT_USER_AGENT[] = "Mozilla/5.0 (X11; Linux i686; rv:38.0) Gecko/
 
 namespace
 {
-    class NetworkCookieJar: public QNetworkCookieJar
+    class NetworkCookieJar : public QNetworkCookieJar
     {
     public:
-        explicit NetworkCookieJar(QObject *parent = 0)
+        explicit NetworkCookieJar(QObject *parent = nullptr)
             : QNetworkCookieJar(parent)
         {
             QDateTime now = QDateTime::currentDateTime();
@@ -107,13 +107,13 @@ namespace
 
 using namespace Net;
 
-DownloadManager *DownloadManager::m_instance = 0;
+DownloadManager *DownloadManager::m_instance = nullptr;
 
 DownloadManager::DownloadManager(QObject *parent)
     : QObject(parent)
 {
 #ifndef QT_NO_OPENSSL
-    connect(&m_networkManager, SIGNAL(sslErrors(QNetworkReply *, QList<QSslError>)), this, SLOT(ignoreSslErrors(QNetworkReply *, QList<QSslError>)));
+    connect(&m_networkManager, &QNetworkAccessManager::sslErrors, this, &Net::DownloadManager::ignoreSslErrors);
 #endif
     m_networkManager.setCookieJar(new NetworkCookieJar(this));
 }
@@ -128,7 +128,7 @@ void DownloadManager::freeInstance()
 {
     if (m_instance) {
         delete m_instance;
-        m_instance = 0;
+        m_instance = nullptr;
     }
 }
 

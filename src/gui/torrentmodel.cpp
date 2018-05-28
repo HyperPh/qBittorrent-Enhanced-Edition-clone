@@ -61,19 +61,20 @@ TorrentModel::TorrentModel(QObject *parent)
     : QAbstractListModel(parent)
 {
     // Load the torrents
-    foreach (BitTorrent::TorrentHandle *const torrent, BitTorrent::Session::instance()->torrents())
+    using namespace BitTorrent;
+    foreach (TorrentHandle *const torrent, Session::instance()->torrents())
         addTorrent(torrent);
 
     // Listen for torrent changes
-    connect(BitTorrent::Session::instance(), SIGNAL(torrentAdded(BitTorrent::TorrentHandle * const)), SLOT(addTorrent(BitTorrent::TorrentHandle * const)));
-    connect(BitTorrent::Session::instance(), SIGNAL(torrentAboutToBeRemoved(BitTorrent::TorrentHandle * const)), SLOT(handleTorrentAboutToBeRemoved(BitTorrent::TorrentHandle * const)));
-    connect(BitTorrent::Session::instance(), SIGNAL(torrentsUpdated()), SLOT(handleTorrentsUpdated()));
+    connect(Session::instance(), &Session::torrentAdded, this, &TorrentModel::addTorrent);
+    connect(Session::instance(), &Session::torrentAboutToBeRemoved, this, &TorrentModel::handleTorrentAboutToBeRemoved);
+    connect(Session::instance(), &Session::torrentsUpdated, this, &TorrentModel::handleTorrentsUpdated);
 
-    connect(BitTorrent::Session::instance(), SIGNAL(torrentFinished(BitTorrent::TorrentHandle * const)), SLOT(handleTorrentStatusUpdated(BitTorrent::TorrentHandle * const)));
-    connect(BitTorrent::Session::instance(), SIGNAL(torrentMetadataLoaded(BitTorrent::TorrentHandle * const)), SLOT(handleTorrentStatusUpdated(BitTorrent::TorrentHandle * const)));
-    connect(BitTorrent::Session::instance(), SIGNAL(torrentResumed(BitTorrent::TorrentHandle * const)), SLOT(handleTorrentStatusUpdated(BitTorrent::TorrentHandle * const)));
-    connect(BitTorrent::Session::instance(), SIGNAL(torrentPaused(BitTorrent::TorrentHandle * const)), SLOT(handleTorrentStatusUpdated(BitTorrent::TorrentHandle * const)));
-    connect(BitTorrent::Session::instance(), SIGNAL(torrentFinishedChecking(BitTorrent::TorrentHandle * const)), SLOT(handleTorrentStatusUpdated(BitTorrent::TorrentHandle * const)));
+    connect(Session::instance(), &Session::torrentFinished, this, &TorrentModel::handleTorrentStatusUpdated);
+    connect(Session::instance(), &Session::torrentMetadataLoaded, this, &TorrentModel::handleTorrentStatusUpdated);
+    connect(Session::instance(), &Session::torrentResumed, this, &TorrentModel::handleTorrentStatusUpdated);
+    connect(Session::instance(), &Session::torrentPaused, this, &TorrentModel::handleTorrentStatusUpdated);
+    connect(Session::instance(), &Session::torrentFinishedChecking, this, &TorrentModel::handleTorrentStatusUpdated);
 }
 
 int TorrentModel::rowCount(const QModelIndex &index) const
@@ -348,6 +349,7 @@ QIcon getIconByState(BitTorrent::TorrentState state)
     case BitTorrent::TorrentState::QueuedForChecking:
 #endif
     case BitTorrent::TorrentState::CheckingResumeData:
+    case BitTorrent::TorrentState::Moving:
         return getCheckingIcon();
     case BitTorrent::TorrentState::Unknown:
     case BitTorrent::TorrentState::MissingFiles:
@@ -403,6 +405,7 @@ QColor getColorByState(BitTorrent::TorrentState state)
     case BitTorrent::TorrentState::QueuedForChecking:
 #endif
     case BitTorrent::TorrentState::CheckingResumeData:
+    case BitTorrent::TorrentState::Moving:
         if (!dark)
             return QColor(0, 128, 128); // Teal
         else

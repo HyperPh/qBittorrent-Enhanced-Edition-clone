@@ -41,14 +41,14 @@
 
 namespace
 {
-    const QString RSS_URL("https://husky.moe/feedqBittorent.xml");
+    const QString RSS_URL {QStringLiteral("https://husky.moe/feedqBittorent.xml")};
 
 #ifdef Q_OS_MAC
-    const QString OS_TYPE("Mac OS X");
+    const QString OS_TYPE {QStringLiteral("Mac OS X")};
 #elif defined(Q_OS_WIN) && (defined(__x86_64__) || defined(_M_X64))
-    const QString OS_TYPE("Windows x64");
+    const QString OS_TYPE {QStringLiteral("Windows x64")};
 #else
-    const QString OS_TYPE("Windows");
+    const QString OS_TYPE {QStringLiteral("Windows")};
 #endif
 
     QString getStringValue(QXmlStreamReader &xml);
@@ -67,8 +67,9 @@ void ProgramUpdater::checkForUpdates()
                 // Don't change this User-Agent. In case our updater goes haywire,
                 // the filehost can identify it and contact us.
                 "qBittorrent/" QBT_VERSION_2 " ProgramUpdater (www.qbittorrent.org)");
-    connect(handler, SIGNAL(downloadFinished(QString,QByteArray)), SLOT(rssDownloadFinished(QString,QByteArray)));
-    connect(handler, SIGNAL(downloadFailed(QString,QString)), SLOT(rssDownloadFailed(QString,QString)));
+    connect(handler, static_cast<void (Net::DownloadHandler::*)(const QString &, const QByteArray &)>(&Net::DownloadHandler::downloadFinished)
+            , this, &ProgramUpdater::rssDownloadFinished);
+    connect(handler, &Net::DownloadHandler::downloadFailed, this, &ProgramUpdater::rssDownloadFailed);
 }
 
 void ProgramUpdater::rssDownloadFinished(const QString &url, const QByteArray &data)

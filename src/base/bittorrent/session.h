@@ -30,18 +30,14 @@
 #ifndef BITTORRENT_SESSION_H
 #define BITTORRENT_SESSION_H
 
-#include <vector>
 #include <libtorrent/version.hpp>
 
-#if LIBTORRENT_VERSION_NUM >= 10100
-#include <QElapsedTimer>
-#endif
+#include <vector>
+
 #include <QFile>
 #include <QHash>
+#include <QList>
 #include <QMap>
-#if LIBTORRENT_VERSION_NUM < 10100
-#include <QMutex>
-#endif
 #include <QNetworkConfigurationManager>
 #include <QPointer>
 #include <QQueue>
@@ -50,6 +46,12 @@
 #include <QTimer>
 #include <QVector>
 #include <QWaitCondition>
+
+#if LIBTORRENT_VERSION_NUM < 10100
+#include <QMutex>
+#else
+#include <QElapsedTimer>
+#endif
 
 #include "base/settingvalue.h"
 #include "base/tristatebool.h"
@@ -113,7 +115,6 @@ class QTimer;
 class QStringList;
 class QString;
 class QUrl;
-template<typename T> class QList;
 
 class FilterParserThread;
 class BandwidthScheduler;
@@ -584,7 +585,7 @@ namespace BitTorrent
             bool requestedFileDeletion;
         };
 
-        explicit Session(QObject *parent = 0);
+        explicit Session(QObject *parent = nullptr);
         ~Session();
 
         bool hasPerTorrentRatioLimit() const;
@@ -785,6 +786,10 @@ namespace BitTorrent
         TorrentStatusReport m_torrentStatusReport;
         QStringMap m_categories;
         QSet<QString> m_tags;
+
+        // I/O errored torrents
+        QSet<InfoHash> m_recentErroredTorrents;
+        QTimer *m_recentErroredTorrentsTimer;
 
 #if LIBTORRENT_VERSION_NUM < 10100
         QMutex m_alertsMutex;

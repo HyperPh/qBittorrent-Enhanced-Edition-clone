@@ -132,7 +132,7 @@ namespace
 //   - "hash": Torrent hash
 //   - "name": Torrent name
 //   - "size": Torrent size
-//   - "progress: Torrent progress
+//   - "progress": Torrent progress
 //   - "dlspeed": Torrent download speed
 //   - "upspeed": Torrent upload speed
 //   - "priority": Torrent priority (-1 if queuing is disabled)
@@ -150,6 +150,7 @@ namespace
 // GET params:
 //   - filter (string): all, downloading, seeding, completed, paused, resumed, active, inactive
 //   - category (string): torrent category for filtering by it (empty string means "uncategorized"; no "category" param presented means "any category")
+//   - hashes (string): filter by hashes, can contain multiple hashes separated by |
 //   - sort (string): name of column for sorting by its value
 //   - reverse (bool): enable reverse sorting
 //   - limit (int): set limit number of torrents returned (if greater than 0, otherwise - unlimited)
@@ -162,9 +163,10 @@ void TorrentsController::infoAction()
     const bool reverse {parseBool(params()["reverse"], false)};
     int limit {params()["limit"].toInt()};
     int offset {params()["offset"].toInt()};
+    const QStringSet hashSet {params()["hashes"].split('|', QString::SkipEmptyParts).toSet()};
 
     QVariantList torrentList;
-    TorrentFilter torrentFilter(filter, TorrentFilter::AnyHash, category);
+    TorrentFilter torrentFilter(filter, (hashSet.isEmpty() ? TorrentFilter::AnyHash : hashSet), category);
     foreach (BitTorrent::TorrentHandle *const torrent, BitTorrent::Session::instance()->torrents()) {
         if (torrentFilter.match(torrent))
             torrentList.append(serialize(*torrent));
@@ -762,7 +764,6 @@ void TorrentsController::renameAction()
         throw APIError(APIErrorType::NotFound);
 
     name.replace(QRegularExpression("\r?\n|\r"), " ");
-    qDebug() << "Renaming" << torrent->name() << "to" << name;
     torrent->setName(name);
 }
 

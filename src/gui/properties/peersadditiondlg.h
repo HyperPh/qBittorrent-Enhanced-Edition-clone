@@ -30,10 +30,9 @@
 #define PEERADDITION_H
 
 #include <QDialog>
+#include <QList>
 
 #include "base/bittorrent/peerinfo.h"
-
-template <class T> class QList;
 
 namespace Ui
 {

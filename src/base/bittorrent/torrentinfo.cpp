@@ -26,20 +26,20 @@
  * exception statement from your version.
  */
 
-#include <QDebug>
-#include <QString>
-#include <QList>
-#include <QUrl>
-#include <QDateTime>
+#include "torrentinfo.h"
 
 #include <libtorrent/error_code.hpp>
 
-#include "base/utils/misc.h"
+#include <QDateTime>
+#include <QDebug>
+#include <QString>
+#include <QUrl>
+
 #include "base/utils/fs.h"
+#include "base/utils/misc.h"
 #include "base/utils/string.h"
 #include "infohash.h"
 #include "trackerentry.h"
-#include "torrentinfo.h"
 
 namespace libt = libtorrent;
 using namespace BitTorrent;
@@ -315,7 +315,7 @@ QVector<QByteArray> TorrentInfo::pieceHashes() const
     return hashes;
 }
 
-TorrentInfo::PieceRange TorrentInfo::filePieces(const QString& file) const
+TorrentInfo::PieceRange TorrentInfo::filePieces(const QString &file) const
 {
     if (!isValid()) // if we do not check here the debug message will be printed, which would be not correct
         return {};
@@ -353,8 +353,8 @@ void TorrentInfo::renameFile(uint index, const QString &newPath)
 
 int BitTorrent::TorrentInfo::fileIndex(const QString& fileName) const
 {
-    // the check whether the object valid is not needed here
-    // because filesCount() returns -1 in that case and the loop exits immediately
+    // the check whether the object is valid is not needed here
+    // because if filesCount() returns -1 the loop exits immediately
     for (int i = 0; i < filesCount(); ++i)
         if (fileName == filePath(i))
             return i;
@@ -362,24 +362,29 @@ int BitTorrent::TorrentInfo::fileIndex(const QString& fileName) const
     return -1;
 }
 
-bool TorrentInfo::hasRootFolder() const
+QString TorrentInfo::rootFolder() const
 {
-    QString testRootFolder;
+    QString rootFolder;
     for (int i = 0; i < filesCount(); ++i) {
         const QString filePath = this->filePath(i);
         if (QDir::isAbsolutePath(filePath)) continue;
 
         const auto filePathElements = filePath.splitRef('/');
         // if at least one file has no root folder, no common root folder exists
-        if (filePathElements.count() <= 1) return false;
+        if (filePathElements.count() <= 1) return "";
 
-        if (testRootFolder.isEmpty())
-            testRootFolder = filePathElements.at(0).toString();
-        else if (testRootFolder != filePathElements.at(0))
-            return false;
+        if (rootFolder.isEmpty())
+            rootFolder = filePathElements.at(0).toString();
+        else if (rootFolder != filePathElements.at(0))
+            return "";
     }
 
-    return true;
+    return rootFolder;
+}
+
+bool TorrentInfo::hasRootFolder() const
+{
+    return !rootFolder().isEmpty();
 }
 
 void TorrentInfo::stripRootFolder()

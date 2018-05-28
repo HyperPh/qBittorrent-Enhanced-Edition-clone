@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2006  Christophe Dumez
+ * Copyright (C) 2006  Christophe Dumez <chris@qbittorrent.org>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,8 +24,6 @@
  * modify file(s), you may extend this exception to your version of the file(s),
  * but you are not obligated to do so. If you do not wish to do so, delete this
  * exception statement from your version.
- *
- * Contact : chris@qbittorrent.org
  */
 
 #include "misc.h"
@@ -52,6 +50,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QProcess>
+#include <QRegExp>
 #include <QRegularExpression>
 #include <QSysInfo>
 #include <QUrl>
@@ -62,17 +61,19 @@
 #include <QApplication>
 #include <QDesktopServices>
 #include <QDesktopWidget>
-#include <QProcess>
 #include <QStyle>
 #if (defined(Q_OS_UNIX) && !defined(Q_OS_MAC)) && defined(QT_DBUS_LIB)
 #include <QDBusInterface>
 #include <QDBusMessage>
 #endif
+#if defined(Q_OS_UNIX) && !defined(Q_OS_MAC)
+#include "base/utils/version.h"
+#endif
 #endif
 
-#include "base/utils/string.h"
-#include "base/unicodestrings.h"
 #include "base/logger.h"
+#include "base/unicodestrings.h"
+#include "base/utils/string.h"
 #include "fs.h"
 
 namespace
@@ -141,7 +142,7 @@ void Utils::Misc::shutdownComputer(const ShutdownDialogAction &action)
     else
         EventToSend = kAEShutDown;
     AEAddressDesc targetDesc;
-    static const ProcessSerialNumber kPSNOfSystemProcess = { 0, kSystemProcess };
+    static const ProcessSerialNumber kPSNOfSystemProcess = {0, kSystemProcess};
     AppleEvent eventReply = {typeNull, NULL};
     AppleEvent appleEventToSend = {typeNull, NULL};
 
@@ -271,12 +272,12 @@ QString Utils::Misc::pythonExecutable()
          * On Unix-Like Systems python2 and python3 should always exist
          * http://legacy.python.org/dev/peps/pep-0394/
          */
-        pythonProc.start("python3", QStringList() << "--version", QIODevice::ReadOnly);
+        pythonProc.start("python3", {"--version"}, QIODevice::ReadOnly);
         if (pythonProc.waitForFinished() && (pythonProc.exitCode() == 0)) {
             executable = "python3";
             return executable;
         }
-        pythonProc.start("python2", QStringList() << "--version", QIODevice::ReadOnly);
+        pythonProc.start("python2", {"--version"}, QIODevice::ReadOnly);
         if (pythonProc.waitForFinished() && (pythonProc.exitCode() == 0)) {
             executable = "python2";
             return executable;
@@ -284,7 +285,7 @@ QString Utils::Misc::pythonExecutable()
 #endif
         // Look for "python" in Windows and in UNIX if "python2" and "python3" are
         // not detected.
-        pythonProc.start("python", QStringList() << "--version", QIODevice::ReadOnly);
+        pythonProc.start("python", {"--version"}, QIODevice::ReadOnly);
         if (pythonProc.waitForFinished() && (pythonProc.exitCode() == 0))
             executable = "python";
         else
@@ -305,7 +306,7 @@ QString Utils::Misc::pythonVersionComplete()
         if (pythonExecutable().isEmpty())
             return version;
         QProcess pythonProc;
-        pythonProc.start(pythonExecutable(), QStringList() << "--version", QIODevice::ReadOnly);
+        pythonProc.start(pythonExecutable(), {"--version"}, QIODevice::ReadOnly);
         if (pythonProc.waitForFinished() && (pythonProc.exitCode() == 0)) {
             QByteArray output = pythonProc.readAllStandardOutput();
             if (output.isEmpty())
@@ -525,9 +526,9 @@ bool Utils::Misc::isUrl(const QString &s)
     return reURLScheme.match(QUrl(s).scheme()).hasMatch();
 }
 
-QString Utils::Misc::parseHtmlLinks(const QString &raw_text)
+QString Utils::Misc::parseHtmlLinks(const QString &rawText)
 {
-    QString result = raw_text;
+    QString result = rawText;
     static QRegExp reURL(
         "(\\s|^)"                                             // start with whitespace or beginning of line
         "("
@@ -621,21 +622,33 @@ void Utils::Misc::openFolderSelect(const QString &absolutePath)
         ::CoUninitialize();
 #elif defined(Q_OS_UNIX) && !defined(Q_OS_MAC)
     QProcess proc;
-    proc.start("xdg-mime", QStringList() << "query" << "default" << "inode/directory");
+    proc.start("xdg-mime", {"query", "default", "inode/directory"});
     proc.waitForFinished();
     QString output = proc.readLine().simplified();
-    if ((output == "dolphin.desktop") || (output == "org.kde.dolphin.desktop"))
-        proc.startDetached("dolphin", QStringList() << "--select" << Utils::Fs::toNativePath(path));
+    if ((output == "dolphin.desktop") || (output == "org.kde.dolphin.desktop")) {
+        proc.startDetached("dolphin", {"--select", Utils::Fs::toNativePath(path)});
+    }
     else if ((output == "nautilus.desktop") || (output == "org.gnome.Nautilus.desktop")
-             || (output == "nautilus-folder-handler.desktop"))
-        proc.startDetached("nautilus", QStringList() << "--no-desktop" << Utils::Fs::toNativePath(path));
-    else if (output == "nemo.desktop")
-        proc.startDetached("nemo", QStringList() << "--no-desktop" << Utils::Fs::toNativePath(path));
-    else if ((output == "konqueror.desktop") || (output == "kfmclient_dir.desktop"))
-        proc.startDetached("konqueror", QStringList() << "--select" << Utils::Fs::toNativePath(path));
-    else
+                 || (output == "nautilus-folder-handler.desktop")) {
+        proc.start("nautilus", {"--version"});
+        proc.waitForFinished();
+        const QString nautilusVerStr = QString(proc.readLine()).remove(QRegExp("[^0-9.]"));
+        using NautilusVersion = Utils::Version<int, 3>;
+        if (NautilusVersion::tryParse(nautilusVerStr, {1, 0, 0}) > NautilusVersion {3, 28})
+            proc.startDetached("nautilus", {Utils::Fs::toNativePath(path)});
+        else
+            proc.startDetached("nautilus", {"--no-desktop", Utils::Fs::toNativePath(path)});
+    }
+    else if (output == "nemo.desktop") {
+        proc.startDetached("nemo", {"--no-desktop", Utils::Fs::toNativePath(path)});
+    }
+    else if ((output == "konqueror.desktop") || (output == "kfmclient_dir.desktop")) {
+        proc.startDetached("konqueror", {"--select", Utils::Fs::toNativePath(path)});
+    }
+    else {
         // "caja" manager can't pinpoint the file, see: https://github.com/qbittorrent/qBittorrent/issues/5003
         openPath(path.left(path.lastIndexOf("/")));
+    }
 #else
     openPath(path.left(path.lastIndexOf("/")));
 #endif

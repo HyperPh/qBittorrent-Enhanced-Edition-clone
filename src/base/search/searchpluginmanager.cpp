@@ -42,8 +42,8 @@
 
 #include "base/global.h"
 #include "base/logger.h"
-#include "base/net/downloadmanager.h"
 #include "base/net/downloadhandler.h"
+#include "base/net/downloadmanager.h"
 #include "base/preferences.h"
 #include "base/profile.h"
 #include "base/utils/fs.h"
@@ -61,18 +61,6 @@ namespace
 }
 
 QPointer<SearchPluginManager> SearchPluginManager::m_instance = nullptr;
-
-const QHash<QString, QString> SearchPluginManager::m_categoryNames {
-    {"all", QT_TRANSLATE_NOOP("SearchEngine", "All categories")},
-    {"movies", QT_TRANSLATE_NOOP("SearchEngine", "Movies")},
-    {"tv", QT_TRANSLATE_NOOP("SearchEngine", "TV shows")},
-    {"music", QT_TRANSLATE_NOOP("SearchEngine", "Music")},
-    {"games", QT_TRANSLATE_NOOP("SearchEngine", "Games")},
-    {"anime", QT_TRANSLATE_NOOP("SearchEngine", "Anime")},
-    {"software", QT_TRANSLATE_NOOP("SearchEngine", "Software")},
-    {"pictures", QT_TRANSLATE_NOOP("SearchEngine", "Pictures")},
-    {"books", QT_TRANSLATE_NOOP("SearchEngine", "Books")}
-};
 
 SearchPluginManager::SearchPluginManager()
     : m_updateUrl(QString("http://searchplugins.qbittorrent.org/%1/engines/").arg(Utils::Misc::pythonVersion() >= 3 ? "nova3" : "nova"))
@@ -268,7 +256,7 @@ bool SearchPluginManager::uninstallPlugin(const QString &name)
     return true;
 }
 
-void SearchPluginManager::updateIconPath(PluginInfo * const plugin)
+void SearchPluginManager::updateIconPath(PluginInfo *const plugin)
 {
     if (!plugin) return;
     QString iconPath = QString("%1/%2.png").arg(pluginsLocation(), plugin->name);
@@ -307,7 +295,18 @@ SearchHandler *SearchPluginManager::startSearch(const QString &pattern, const QS
 
 QString SearchPluginManager::categoryFullName(const QString &categoryName)
 {
-    return tr(m_categoryNames.value(categoryName).toUtf8().constData());
+    static const QHash<QString, QString> categoryTable {
+        {"all", tr("All categories")},
+        {"movies", tr("Movies")},
+        {"tv", tr("TV shows")},
+        {"music", tr("Music")},
+        {"games", tr("Games")},
+        {"anime", tr("Anime")},
+        {"software", tr("Software")},
+        {"pictures", tr("Pictures")},
+        {"books", tr("Books")}
+    };
+    return categoryTable.value(categoryName);
 }
 
 QString SearchPluginManager::pluginFullName(const QString &pluginName)

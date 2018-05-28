@@ -29,21 +29,21 @@
 #ifndef BITTORRENT_TORRENTINFO_H
 #define BITTORRENT_TORRENTINFO_H
 
-#include <QCoreApplication>
-#include <QtGlobal>
-
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/version.hpp>
 
+#include <QCoreApplication>
+#include <QList>
+#include <QtGlobal>
+#include <QVector>
+
 #include "base/indexrange.h"
 
-class QString;
-class QUrl;
-class QDateTime;
-class QStringList;
 class QByteArray;
-template<typename T> class QList;
-template<typename T> class QVector;
+class QDateTime;
+class QString;
+class QStringList;
+class QUrl;
 
 namespace BitTorrent
 {
@@ -52,7 +52,7 @@ namespace BitTorrent
 
     class TorrentInfo
     {
-        Q_DECLARE_TR_FUNCTIONS("TorrentInfo")
+        Q_DECLARE_TR_FUNCTIONS(TorrentInfo)
 
     public:
 #if LIBTORRENT_VERSION_NUM < 10100
@@ -104,6 +104,7 @@ namespace BitTorrent
 
         void renameFile(uint index, const QString &newPath);
 
+        QString rootFolder() const;
         bool hasRootFolder() const;
         void stripRootFolder();
 

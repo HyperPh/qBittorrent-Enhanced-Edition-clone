@@ -93,7 +93,7 @@ namespace
 #define SETTINGS_KEY(name) "Application/" name
 
     // FileLogger properties keys
-#define FILELOGGER_SETTINGS_KEY(name) SETTINGS_KEY("FileLogger/") name
+#define FILELOGGER_SETTINGS_KEY(name) QStringLiteral(SETTINGS_KEY("FileLogger/") name)
     const QString KEY_FILELOGGER_ENABLED = FILELOGGER_SETTINGS_KEY("Enabled");
     const QString KEY_FILELOGGER_PATH = FILELOGGER_SETTINGS_KEY("Path");
     const QString KEY_FILELOGGER_BACKUP = FILELOGGER_SETTINGS_KEY("Backup");
@@ -151,11 +151,11 @@ Application::Application(const QString &id, int &argc, char **argv)
 #endif
 
 #if defined(Q_OS_WIN) && !defined(DISABLE_GUI)
-    connect(this, SIGNAL(commitDataRequest(QSessionManager &)), this, SLOT(shutdownCleanup(QSessionManager &)), Qt::DirectConnection);
+    connect(this, &QGuiApplication::commitDataRequest, this, &Application::shutdownCleanup, Qt::DirectConnection);
 #endif
 
-    connect(this, SIGNAL(messageReceived(const QString &)), SLOT(processMessage(const QString &)));
-    connect(this, SIGNAL(aboutToQuit()), SLOT(cleanup()));
+    connect(this, &Application::messageReceived, this, &Application::processMessage);
+    connect(this, &QCoreApplication::aboutToQuit, this, &Application::cleanup);
 
     if (isFileLoggerEnabled())
         m_fileLogger = new FileLogger(fileLoggerPath(), isFileLoggerBackup(), fileLoggerMaxSize(), isFileLoggerDeleteOld(), fileLoggerAge(), static_cast<FileLogger::FileLogAgeType>(fileLoggerAgeType()));
@@ -290,9 +290,21 @@ void Application::runExternalProgram(const BitTorrent::TorrentHandle *torrent) c
     std::sort(tags.begin(), tags.end(), Utils::String::naturalLessThan<Qt::CaseInsensitive>);
     program.replace("%G", tags.join(','));
 
+#if defined(Q_OS_WIN)
+    const auto chopPathSep = [](const QString &str) -> QString
+    {
+        if (str.endsWith('\\'))
+            return str.mid(0, (str.length() -1));
+        return str;
+    };
+    program.replace("%F", chopPathSep(Utils::Fs::toNativePath(torrent->contentPath())));
+    program.replace("%R", chopPathSep(Utils::Fs::toNativePath(torrent->rootPath())));
+    program.replace("%D", chopPathSep(Utils::Fs::toNativePath(torrent->savePath())));
+#else
     program.replace("%F", Utils::Fs::toNativePath(torrent->contentPath()));
     program.replace("%R", Utils::Fs::toNativePath(torrent->rootPath()));
     program.replace("%D", Utils::Fs::toNativePath(torrent->savePath()));
+#endif
     program.replace("%C", QString::number(torrent->filesCount()));
     program.replace("%Z", QString::number(torrent->totalSize()));
     program.replace("%T", torrent->currentTracker());
@@ -301,9 +313,7 @@ void Application::runExternalProgram(const BitTorrent::TorrentHandle *torrent) c
     Logger *logger = Logger::instance();
     logger->addMessage(tr("Torrent: %1, running external program, command: %2").arg(torrent->name(), program));
 
-#if defined(Q_OS_UNIX)
-    QProcess::startDetached(QLatin1String("/bin/sh"), {QLatin1String("-c"), program});
-#else
+#if defined(Q_OS_WIN)
     std::unique_ptr<wchar_t[]> programWchar(new wchar_t[program.length() + 1] {});
     program.toWCharArray(programWchar.get());
 
@@ -320,6 +330,8 @@ void Application::runExternalProgram(const BitTorrent::TorrentHandle *torrent) c
     QProcess::startDetached(QString::fromWCharArray(args[0]), argList);
 
     ::LocalFree(args);
+#else
+    QProcess::startDetached(QLatin1String("/bin/sh"), {QLatin1String("-c"), program});
 #endif
 }
 
@@ -489,8 +501,8 @@ int Application::exec(const QStringList &params)
 #endif
 
     BitTorrent::Session::initInstance();
-    connect(BitTorrent::Session::instance(), SIGNAL(torrentFinished(BitTorrent::TorrentHandle *const)), SLOT(torrentFinished(BitTorrent::TorrentHandle *const)));
-    connect(BitTorrent::Session::instance(), SIGNAL(allTorrentsFinished()), SLOT(allTorrentsFinished()), Qt::QueuedConnection);
+    connect(BitTorrent::Session::instance(), &BitTorrent::Session::torrentFinished, this, &Application::torrentFinished);
+    connect(BitTorrent::Session::instance(), &BitTorrent::Session::allTorrentsFinished, this, &Application::allTorrentsFinished, Qt::QueuedConnection);
 
 #ifndef DISABLE_COUNTRIES_RESOLUTION
     Net::GeoIPManager::initInstance();
@@ -660,7 +672,7 @@ void Application::shutdownCleanup(QSessionManager &manager)
     // According to the qt docs we shouldn't call quit() inside a slot.
     // aboutToQuit() is never emitted if the user hits "Cancel" in
     // the above dialog.
-    QTimer::singleShot(0, qApp, SLOT(quit()));
+    QTimer::singleShot(0, qApp, &QCoreApplication::quit);
 }
 #endif
 

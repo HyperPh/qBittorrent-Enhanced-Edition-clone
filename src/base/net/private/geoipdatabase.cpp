@@ -26,25 +26,23 @@
  * exception statement from your version.
  */
 
+#include <QDateTime>
 #include <QDebug>
-#include <QVariant>
+#include <QFile>
 #include <QHash>
 #include <QHostAddress>
-#include <QDateTime>
-#include <QFile>
+#include <QVariant>
 
 #include "base/types.h"
 #include "geoipdatabase.h"
 
 namespace
 {
-    const quint32 __ENDIAN_TEST__ = 0x00000001;
-    const bool __IS_LITTLE_ENDIAN__ = (reinterpret_cast<const uchar *>(&__ENDIAN_TEST__)[0] == 0x01);
     const qint32 MAX_FILE_SIZE = 67108864; // 64MB
     const char DB_TYPE[] = "GeoLite2-Country";
     const quint32 MAX_METADATA_SIZE = 131072; // 128KB
     const char METADATA_BEGIN_MARK[] = "\xab\xcd\xefMaxMind.com";
-    const char DATA_SECTION_SEPARATOR[16] = { 0 };
+    const char DATA_SECTION_SEPARATOR[16] = {0};
 
     enum class DataType
     {
@@ -91,7 +89,7 @@ GeoIPDatabase::GeoIPDatabase(quint32 size)
 
 GeoIPDatabase *GeoIPDatabase::load(const QString &filename, QString &error)
 {
-    GeoIPDatabase *db = 0;
+    GeoIPDatabase *db = nullptr;
     QFile file(filename);
     if (file.size() > MAX_FILE_SIZE) {
         error = tr("Unsupported database file size.");
@@ -122,7 +120,7 @@ GeoIPDatabase *GeoIPDatabase::load(const QString &filename, QString &error)
 
 GeoIPDatabase *GeoIPDatabase::load(const QByteArray &data, QString &error)
 {
-    GeoIPDatabase *db = 0;
+    GeoIPDatabase *db = nullptr;
     if (data.size() > MAX_FILE_SIZE) {
         error = tr("Unsupported database file size.");
         return 0;
@@ -448,8 +446,12 @@ bool GeoIPDatabase::readDataFieldDescriptor(quint32 &offset, DataFieldDescriptor
 
 void GeoIPDatabase::fromBigEndian(uchar *buf, quint32 len) const
 {
-    if (__IS_LITTLE_ENDIAN__)
-        std::reverse(buf, buf + len);
+#if (Q_BYTE_ORDER == Q_LITTLE_ENDIAN)
+    std::reverse(buf, buf + len);
+#else
+    Q_UNUSED(buf);
+    Q_UNUSED(len);
+#endif
 }
 
 QVariant GeoIPDatabase::readMapValue(quint32 &offset, quint32 count) const
