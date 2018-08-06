@@ -155,6 +155,8 @@ QByteArray prefjson::getPreferences()
     // Add trackers
     data["add_trackers_enabled"] = session->isAddTrackersEnabled();
     data["add_trackers"] = session->additionalTrackers();
+    data["auto_update_trackers_enabled"] = session->isAutoUpdateTrackersEnabled();
+    data["public_trackers"] = session->publicTrackers();
 
     // Web UI
     // Language
@@ -373,6 +375,7 @@ void prefjson::setPreferences(const QString& json)
     // Add trackers
     session->setAddTrackersEnabled(m["add_trackers_enabled"].toBool());
     session->setAdditionalTrackers(m["add_trackers"].toString());
+    session->setAutoUpdateTrackersEnabled(m["auto_update_trackers_enabled"].toBool());
 
     // Web UI
     // Language

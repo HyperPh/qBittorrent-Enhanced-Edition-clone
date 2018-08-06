@@ -134,6 +134,7 @@ static const char KEY_PEER_PORT[] = "port";
 static const char KEY_PEER_COUNTRY_CODE[] = "country_code";
 static const char KEY_PEER_COUNTRY[] = "country";
 static const char KEY_PEER_CLIENT[] = "client";
+static const char KEY_PEER_ID[] = "peer_id";
 static const char KEY_PEER_PROGRESS[] = "progress";
 static const char KEY_PEER_DOWN_SPEED[] = "dl_speed";
 static const char KEY_PEER_UP_SPEED[] = "up_speed";
@@ -478,6 +479,7 @@ QByteArray btjson::getSyncTorrentPeersData(int acceptedResponseId, QString hash,
         peer[KEY_PEER_IP] = pi.address().ip.toString();
         peer[KEY_PEER_PORT] = pi.address().port;
         peer[KEY_PEER_CLIENT] = pi.client();
+        peer[KEY_PEER_ID] = pi.pid().left(8);
         peer[KEY_PEER_PROGRESS] = pi.progress();
         peer[KEY_PEER_DOWN_SPEED] = pi.payloadDownSpeed();
         peer[KEY_PEER_UP_SPEED] = pi.payloadUpSpeed();

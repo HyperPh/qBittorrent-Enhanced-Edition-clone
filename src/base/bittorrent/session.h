@@ -278,8 +278,12 @@ namespace BitTorrent
         void setProxyPeerConnectionsEnabled(bool enabled);
         bool isAddTrackersEnabled() const;
         void setAddTrackersEnabled(bool enabled);
+        bool isAutoUpdateTrackersEnabled() const;
+        void setAutoUpdateTrackersEnabled(bool enabled);
         QString additionalTrackers() const;
+        QString publicTrackers() const;
         void setAdditionalTrackers(const QString &trackers);
+        void setPublicTrackers(const QString &trackers);
         bool isIPFilteringEnabled() const;
         void setIPFilteringEnabled(bool enabled);
         QString IPFilterFile() const;
@@ -348,21 +352,24 @@ namespace BitTorrent
         MaxRatioAction maxRatioAction() const;
         void setMaxRatioAction(MaxRatioAction act);
 
-        void banIP(const QString &ip);
-        bool checkAccessFlags(const QString &ip);
-        void tempblockIP(const QString &ip);
-        void removeBlockedIP(const QString &ip);
-        void eraseIPFilter();
-        void unbanIP();
-        void autoBanBadClient();
-
-        // Unban Timer
+        // Enhanced Function
         bool m_isActive = false;
         QQueue<QString> q_bannedIPs;
         QQueue<int64_t> q_unbanTime;
+        QString m_publicTrackers;
         QTimer *m_unbanTimer;
         QTimer *m_banTimer;
+        QTimer *m_updateTimer;
+
+        void autoBanBadClient();
+        void banIP(const QString &ip);
+        bool checkAccessFlags(const QString &ip);
+        void eraseIPFilter();
         void insertQueue(QString ip);
+        void tempblockIP(const QString &ip);
+        void removeBlockedIP(const QString &ip);
+        void unbanIP();
+        void updatePublicTracker();
 
         bool isKnownTorrent(const InfoHash &hash) const;
         bool addTorrent(QString source, const AddTorrentParams &params = AddTorrentParams());
@@ -453,6 +460,10 @@ namespace BitTorrent
         void networkOnlineStateChanged(const bool online);
         void networkConfigurationChange(const QNetworkConfiguration&);
 
+        // Public Tracker slots
+        void txtDownloadFinished(const QString &url, const QByteArray &data);
+        void txtDownloadFailed(const QString &url, const QString &error);
+
     private:
         explicit Session(QObject *parent = 0);
         ~Session();
@@ -478,6 +489,7 @@ namespace BitTorrent
         void enableTracker(bool enable);
         void enableBandwidthScheduler();
         void populateAdditionalTrackers();
+        void populatePublicTrackers();
         void enableIPFilter();
         void disableIPFilter();
         int parseOfflineFilterFile(QString ipDat, libtorrent::ip_filter &filter);
@@ -557,6 +569,7 @@ namespace BitTorrent
         CachedSettingValue<bool> m_isUTPEnabled;
         CachedSettingValue<bool> m_isUTPRateLimited;
         CachedSettingValue<bool> m_isAddTrackersEnabled;
+        CachedSettingValue<bool> m_isAutoUpdateTrackersEnabled;
         CachedSettingValue<QString> m_additionalTrackers;
         CachedSettingValue<qreal> m_globalMaxRatio;
         CachedSettingValue<bool> m_isAddTorrentPaused;
@@ -604,6 +617,7 @@ namespace BitTorrent
         int m_numResumeData;
         int m_extraLimit;
         QList<BitTorrent::TrackerEntry> m_additionalTrackerList;
+        QList<BitTorrent::TrackerEntry> m_publicTrackerList;
         QString m_resumeFolderPath;
         QFile m_resumeFolderLock;
         QHash<InfoHash, QString> m_savePathsToRemove;

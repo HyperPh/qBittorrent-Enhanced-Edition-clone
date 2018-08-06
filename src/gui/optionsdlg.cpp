@@ -317,6 +317,7 @@ OptionsDialog::OptionsDialog(QWidget *parent)
     connect(m_ui->checkIgnoreSlowTorrentsForQueueing, SIGNAL(toggled(bool)), this, SLOT(enableApplyButton()));
     connect(m_ui->checkEnableAddTrackers, SIGNAL(toggled(bool)), this, SLOT(enableApplyButton()));
     connect(m_ui->textTrackers, SIGNAL(textChanged()), this, SLOT(enableApplyButton()));
+    connect(m_ui->checkAutoUpdateTrackers, SIGNAL(toggled(bool)), this, SLOT(enableApplyButton()));
 #ifndef DISABLE_WEBUI
     // Web UI tab
     connect(m_ui->textServerDomains, SIGNAL(textChanged(QString)), this, SLOT(enableApplyButton()));
@@ -584,6 +585,7 @@ void OptionsDialog::saveOptions()
     session->setAnonymousModeEnabled(m_ui->checkAnonymousMode->isChecked());
     session->setAddTrackersEnabled(m_ui->checkEnableAddTrackers->isChecked());
     session->setAdditionalTrackers(m_ui->textTrackers->toPlainText());
+    session->setAutoUpdateTrackersEnabled(m_ui->checkAutoUpdateTrackers->isChecked());
     session->setGlobalMaxRatio(getMaxRatio());
     session->setMaxRatioAction(static_cast<MaxRatioAction>(m_ui->comboRatioLimitAct->currentIndex()));
     // End Bittorrent preferences
@@ -953,6 +955,8 @@ void OptionsDialog::loadOptions()
     m_ui->checkAnonymousMode->setChecked(session->isAnonymousModeEnabled());
     m_ui->checkEnableAddTrackers->setChecked(session->isAddTrackersEnabled());
     m_ui->textTrackers->setPlainText(session->additionalTrackers());
+    m_ui->checkAutoUpdateTrackers->setChecked(session->isAutoUpdateTrackersEnabled());
+    m_ui->textPublicTrackers->setPlainText(session->publicTrackers());
 
     m_ui->checkEnableQueueing->setChecked(session->isQueueingSystemEnabled());
     m_ui->spinMaxActiveDownloads->setValue(session->maxActiveDownloads());

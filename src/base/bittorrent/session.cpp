@@ -100,7 +100,7 @@ using NETIO_STATUS = LONG;
 
 static const char PEER_ID[] = "qB";
 static const char RESUME_FOLDER[] = "BT_backup";
-static const char USER_AGENT[] = "qBittorrent/" QBT_VERSION_2;
+static const char USER_AGENT[] = "qBittorrent/3.3.16";
 
 namespace libt = libtorrent;
 using namespace BitTorrent;
@@ -243,6 +243,7 @@ Session::Session(QObject *parent)
     , m_isUTPEnabled(BITTORRENT_SESSION_KEY("uTPEnabled"), true)
     , m_isUTPRateLimited(BITTORRENT_SESSION_KEY("uTPRateLimited"), true)
     , m_isAddTrackersEnabled(BITTORRENT_SESSION_KEY("AddTrackersEnabled"), false)
+    , m_isAutoUpdateTrackersEnabled(BITTORRENT_SESSION_KEY("AutoUpdateTrackersEnabled"), false)
     , m_additionalTrackers(BITTORRENT_SESSION_KEY("AdditionalTrackers"))
     , m_globalMaxRatio(BITTORRENT_SESSION_KEY("GlobalMaxRatio"), -1, [](qreal r) { return r < 0 ? -1. : r;})
     , m_isAddTorrentPaused(BITTORRENT_SESSION_KEY("AddTorrentPaused"), false)
@@ -307,7 +308,7 @@ Session::Session(QObject *parent)
                     ;
 
 #if LIBTORRENT_VERSION_NUM < 10100
-    libt::fingerprint fingerprint(PEER_ID, QBT_VERSION_MAJOR, QBT_VERSION_MINOR, QBT_VERSION_BUGFIX, QBT_VERSION_BUILD);
+    libt::fingerprint fingerprint(PEER_ID, QBT_VERSION_MAJOR, QBT_VERSION_MINOR, QBT_VERSION_BUGFIX, 0);
     std::string peerId = fingerprint.to_string();
     const ushort port = this->port();
     std::pair<int, int> ports(port, port);
@@ -341,7 +342,7 @@ Session::Session(QObject *parent)
         dispatchAlerts(alertPtr.release());
     });
 #else
-    std::string peerId = libt::generate_fingerprint(PEER_ID, QBT_VERSION_MAJOR, QBT_VERSION_MINOR, QBT_VERSION_BUGFIX, QBT_VERSION_BUILD);
+    std::string peerId = libt::generate_fingerprint(PEER_ID, QBT_VERSION_MAJOR, QBT_VERSION_MINOR, QBT_VERSION_BUGFIX, 0);
     libt::settings_pack pack;
     pack.set_int(libt::settings_pack::alert_mask, alertMask);
     pack.set_str(libt::settings_pack::peer_fingerprint, peerId);
@@ -425,6 +426,15 @@ Session::Session(QObject *parent)
     m_banTimer->setInterval(500);
     connect(m_banTimer, &QTimer::timeout, this, &Session::autoBanBadClient);
     m_banTimer->start();
+
+    // Update Tracker
+    m_updateTimer = new QTimer(this);
+    m_updateTimer->setInterval(86400*1000);
+    connect(m_updateTimer, &QTimer::timeout, this, &Session::updatePublicTracker);
+    if (isAutoUpdateTrackersEnabled()) {
+        updatePublicTracker();
+        m_updateTimer->start();
+    }
 
     m_statistics = new Statistics(this);
 
@@ -1327,6 +1337,16 @@ void Session::populateAdditionalTrackers()
     }
 }
 
+void Session::populatePublicTrackers()
+{
+    m_publicTrackerList.clear();
+    foreach (QString tracker, publicTrackers().split("\n")) {
+        tracker = tracker.trimmed();
+        if (!tracker.isEmpty())
+            m_publicTrackerList << tracker;
+    }
+}
+
 void Session::processBigRatios()
 {
     qDebug("Process big ratios...");
@@ -1520,6 +1540,30 @@ void Session::autoBanBadClient()
             }
         }
     }
+}
+
+void Session::updatePublicTracker()
+{
+    Net::DownloadHandler *handler = Net::DownloadManager::instance()->downloadUrl(
+                "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt", false, 0, false);
+    connect(handler, SIGNAL(downloadFinished(QString,QByteArray)), SLOT(txtDownloadFinished(QString,QByteArray)));
+    connect(handler, SIGNAL(downloadFailed(QString,QString)), SLOT(txtDownloadFailed(QString,QString)));
+}
+
+void Session::txtDownloadFinished(const QString &url, const QByteArray &data)
+{
+    Q_UNUSED(url);
+
+    setPublicTrackers(QString::fromUtf8(data.data()));
+
+    Logger::instance()->addMessage("The public tracker list updated.", Log::NORMAL);
+}
+
+void Session::txtDownloadFailed(const QString &url, const QString &error)
+{
+    Q_UNUSED(url);
+
+    Logger::instance()->addMessage("Updating the public tracker list failed: " + error, Log::NORMAL);
 }
 
 // Delete a torrent from the session, given its hash
@@ -2504,6 +2548,37 @@ void Session::setAdditionalTrackers(const QString &trackers)
     if (trackers != additionalTrackers()) {
         m_additionalTrackers = trackers;
         populateAdditionalTrackers();
+    }
+}
+
+bool Session::isAutoUpdateTrackersEnabled() const
+{
+    return m_isAutoUpdateTrackersEnabled;
+}
+
+void Session::setAutoUpdateTrackersEnabled(bool enabled)
+{
+    m_isAutoUpdateTrackersEnabled = enabled;
+
+    if(!enabled) {
+        m_updateTimer->stop();
+    } else {
+        m_updateTimer->start();
+        if (m_publicTrackers == "")
+            updatePublicTracker();
+    }
+}
+
+QString Session::publicTrackers() const
+{
+    return m_publicTrackers;
+}
+
+void Session::setPublicTrackers(const QString &trackers)
+{
+    if (trackers != publicTrackers()) {
+        m_publicTrackers = trackers;
+        populatePublicTrackers();
     }
 }
 
@@ -3689,6 +3764,9 @@ void Session::createTorrentHandle(const libt::torrent_handle &nativeHandle)
 
         if (isAddTrackersEnabled() && !torrent->isPrivate())
             torrent->addTrackers(m_additionalTrackerList);
+
+        if (isAutoUpdateTrackersEnabled() && !torrent->isPrivate())
+            torrent->addTrackers(m_publicTrackerList);
 
         bool addPaused = data.addPaused;
         if (data.addPaused == TriStateBool::Undefined)
