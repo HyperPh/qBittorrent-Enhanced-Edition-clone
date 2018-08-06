@@ -90,7 +90,7 @@
      </widget>
      <widget class="QStackedWidget" name="tabOption">
       <property name="currentIndex">
-       <number>0</number>
+       <number>4</number>
       </property>
       <widget class="QWidget" name="tabBehaviorPage">
        <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -122,8 +122,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>501</width>
-             <height>893</height>
+             <width>330</width>
+             <height>750</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -671,8 +671,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>591</width>
-             <height>1138</height>
+             <width>437</width>
+             <height>991</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout">
@@ -1255,8 +1255,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>501</width>
-             <height>745</height>
+             <width>377</width>
+             <height>641</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_20">
@@ -1785,8 +1785,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>516</width>
-             <height>525</height>
+             <width>274</width>
+             <height>368</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -2127,9 +2127,9 @@
            <property name="geometry">
             <rect>
              <x>0</x>
-             <y>0</y>
-             <width>513</width>
-             <height>679</height>
+             <y>-370</y>
+             <width>456</width>
+             <height>912</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -2658,8 +2658,57 @@
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>153</height>
+                  </size>
+                 </property>
                  <property name="focusPolicy">
                   <enum>Qt::StrongFocus</enum>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="checkAutoUpdateTrackers">
+              <property name="title">
+               <string>Automatically update public trackers list:</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+              <layout class="QGridLayout" name="gridLayout_14">
+               <property name="leftMargin">
+                <number>9</number>
+               </property>
+               <property name="topMargin">
+                <number>9</number>
+               </property>
+               <property name="rightMargin">
+                <number>9</number>
+               </property>
+               <property name="bottomMargin">
+                <number>9</number>
+               </property>
+               <item row="0" column="0">
+                <widget class="QPlainTextEdit" name="textPublicTrackers">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>153</height>
+                  </size>
+                 </property>
+                 <property name="readOnly">
+                  <bool>true</bool>
                  </property>
                 </widget>
                </item>
@@ -2709,8 +2758,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>516</width>
-             <height>525</height>
+             <width>313</width>
+             <height>318</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_27">
@@ -2871,8 +2920,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>501</width>
-             <height>636</height>
+             <width>345</width>
+             <height>595</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_23">
@@ -3439,9 +3488,7 @@ Use ';' to split multiple entries. Can use wildcard '*'.</string>
   <tabstop>DNSUsernameTxt</tabstop>
   <tabstop>DNSPasswordTxt</tabstop>
  </tabstops>
- <resources>
-  <include location="../icons.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>checkUploadLimit</sender>

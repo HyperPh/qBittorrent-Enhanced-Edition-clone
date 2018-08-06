@@ -359,6 +359,12 @@
             <label for="add_trackers_checkbox">QBT_TR(A&utomatically add these trackers to new downloads:)QBT_TR[CONTEXT=OptionsDialog]</label></legend>
         <textarea id="add_trackers_textarea" rows="5" cols="70"></textarea>
     </fieldset>
+
+    <fieldset class="settings">
+        <legend><input type="checkbox" id="auto_update_trackers_checkbox"/>
+        <label for="auto_update_trackers_checkbox">QBT_TR(Automatically update public trackers list:)QBT_TR[CONTEXT=OptionsDialog]</label></legend>
+        <textarea id="public_trackers_textarea" rows="5" cols="70" readonly></textarea>
+    </fieldset>
 </div>
 
 <div id="WebUITab" class="PrefTab invisible">
@@ -1001,6 +1007,8 @@
                     // Add trackers
                     $('add_trackers_checkbox').setProperty('checked', pref.add_trackers_enabled);
                     $('add_trackers_textarea').setProperty('value', pref.add_trackers);
+                    $('auto_update_trackers_checkbox').setProperty('checked', pref.auto_update_trackers_enabled);
+                    $('public_trackers_textarea').setProperty('value', pref.public_trackers);
                     updateAddTrackersEnabled();
 
                     // Web UI tab
@@ -1280,6 +1288,7 @@
         // Add trackers
         settings.set('add_trackers_enabled', $('add_trackers_checkbox').getProperty('checked'));
         settings.set('add_trackers', $('add_trackers_textarea').getProperty('value'));
+        settings.set('auto_update_trackers_enabled', $('auto_update_trackers_checkbox').getProperty('checked'));
 
         // Web UI tab
         // Language

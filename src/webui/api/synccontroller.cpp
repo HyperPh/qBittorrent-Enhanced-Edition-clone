@@ -55,6 +55,7 @@ const char KEY_PEER_PORT[] = "port";
 const char KEY_PEER_COUNTRY_CODE[] = "country_code";
 const char KEY_PEER_COUNTRY[] = "country";
 const char KEY_PEER_CLIENT[] = "client";
+const char KEY_PEER_ID[] = "peer_id";
 const char KEY_PEER_PROGRESS[] = "progress";
 const char KEY_PEER_DOWN_SPEED[] = "dl_speed";
 const char KEY_PEER_UP_SPEED[] = "up_speed";
@@ -454,6 +455,7 @@ void SyncController::torrentPeersAction()
         peer[KEY_PEER_IP] = pi.address().ip.toString();
         peer[KEY_PEER_PORT] = pi.address().port;
         peer[KEY_PEER_CLIENT] = pi.client();
+        peer[KEY_PEER_ID] = pi.pid().left(8);
         peer[KEY_PEER_PROGRESS] = pi.progress();
         peer[KEY_PEER_DOWN_SPEED] = pi.payloadDownSpeed();
         peer[KEY_PEER_UP_SPEED] = pi.payloadUpSpeed();
