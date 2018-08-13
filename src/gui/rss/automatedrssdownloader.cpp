@@ -36,7 +36,6 @@
 #include <QMessageBox>
 #include <QPair>
 #include <QRegularExpression>
-#include <QSet>
 #include <QShortcut>
 #include <QSignalBlocker>
 #include <QString>
@@ -50,8 +49,8 @@
 #include "base/rss/rss_session.h"
 #include "base/utils/fs.h"
 #include "base/utils/string.h"
-#include "guiiconprovider.h"
 #include "autoexpandabledialog.h"
+#include "guiiconprovider.h"
 #include "ui_automatedrssdownloader.h"
 #include "utils.h"
 
@@ -253,7 +252,7 @@ void AutomatedRssDownloader::updateRuleDefinitionBox()
             m_ui->lineEFilter->setText(m_currentRule.episodeFilter());
         else
             m_ui->lineEFilter->clear();
-        m_ui->saveDiffDir_check->setChecked(!m_currentRule.savePath().isEmpty());
+        m_ui->checkBoxSaveDiffDir->setChecked(!m_currentRule.savePath().isEmpty());
         m_ui->lineSavePath->setText(Utils::Fs::toNativePath(m_currentRule.savePath()));
         m_ui->checkRegex->blockSignals(true);
         m_ui->checkRegex->setChecked(m_currentRule.useRegex());
@@ -300,7 +299,7 @@ void AutomatedRssDownloader::clearRuleDefinitionBox()
     m_ui->lineContains->clear();
     m_ui->lineNotContains->clear();
     m_ui->lineEFilter->clear();
-    m_ui->saveDiffDir_check->setChecked(false);
+    m_ui->checkBoxSaveDiffDir->setChecked(false);
     m_ui->lineSavePath->clear();
     m_ui->comboCategory->clearEditText();
     m_ui->comboCategory->setCurrentIndex(-1);
@@ -334,7 +333,7 @@ void AutomatedRssDownloader::updateEditedRule()
     m_currentRule.setMustContain(m_ui->lineContains->text());
     m_currentRule.setMustNotContain(m_ui->lineNotContains->text());
     m_currentRule.setEpisodeFilter(m_ui->lineEFilter->text());
-    m_currentRule.setSavePath(m_ui->saveDiffDir_check->isChecked() ? m_ui->lineSavePath->text() : "");
+    m_currentRule.setSavePath(m_ui->checkBoxSaveDiffDir->isChecked() ? m_ui->lineSavePath->text() : "");
     m_currentRule.setCategory(m_ui->comboCategory->currentText());
     TriStateBool addPaused; // Undefined by default
     if (m_ui->comboAddPaused->currentIndex() == 1)
@@ -579,7 +578,7 @@ void AutomatedRssDownloader::updateMatchingArticles()
                                        : RSS::AutoDownloader::instance()->ruleByName(ruleItem->text()));
         foreach (const QString &feedURL, rule.feedURLs()) {
             auto feed = RSS::Session::instance()->feedByURL(feedURL);
-            if (!feed) continue; // feed doesn't exists
+            if (!feed) continue; // feed doesn't exist
 
             QStringList matchingArticles;
             foreach (auto article, feed->articles())
@@ -676,7 +675,7 @@ void AutomatedRssDownloader::updateMustLineValidity()
         if (isRegex)
             tokens << text;
         else
-            foreach (const QString &token, text.split("|"))
+            foreach (const QString &token, text.split('|'))
                 tokens << Utils::String::wildcardToRegex(token);
 
         foreach (const QString &token, tokens) {
@@ -692,13 +691,13 @@ void AutomatedRssDownloader::updateMustLineValidity()
 
     if (valid) {
         m_ui->lineContains->setStyleSheet("");
-        m_ui->lbl_must_stat->setPixmap(QPixmap());
-        m_ui->lbl_must_stat->setToolTip("");
+        m_ui->labelMustStat->setPixmap(QPixmap());
+        m_ui->labelMustStat->setToolTip("");
     }
     else {
         m_ui->lineContains->setStyleSheet("QLineEdit { color: #ff0000; }");
-        m_ui->lbl_must_stat->setPixmap(GuiIconProvider::instance()->getIcon("task-attention").pixmap(16, 16));
-        m_ui->lbl_must_stat->setToolTip(error);
+        m_ui->labelMustStat->setPixmap(GuiIconProvider::instance()->getIcon("task-attention").pixmap(16, 16));
+        m_ui->labelMustStat->setToolTip(error);
     }
 }
 
@@ -714,7 +713,7 @@ void AutomatedRssDownloader::updateMustNotLineValidity()
         if (isRegex)
             tokens << text;
         else
-            foreach (const QString &token, text.split("|"))
+            foreach (const QString &token, text.split('|'))
                 tokens << Utils::String::wildcardToRegex(token);
 
         foreach (const QString &token, tokens) {
@@ -730,13 +729,13 @@ void AutomatedRssDownloader::updateMustNotLineValidity()
 
     if (valid) {
         m_ui->lineNotContains->setStyleSheet("");
-        m_ui->lbl_mustnot_stat->setPixmap(QPixmap());
-        m_ui->lbl_mustnot_stat->setToolTip("");
+        m_ui->labelMustNotStat->setPixmap(QPixmap());
+        m_ui->labelMustNotStat->setToolTip("");
     }
     else {
         m_ui->lineNotContains->setStyleSheet("QLineEdit { color: #ff0000; }");
-        m_ui->lbl_mustnot_stat->setPixmap(GuiIconProvider::instance()->getIcon("task-attention").pixmap(16, 16));
-        m_ui->lbl_mustnot_stat->setToolTip(error);
+        m_ui->labelMustNotStat->setPixmap(GuiIconProvider::instance()->getIcon("task-attention").pixmap(16, 16));
+        m_ui->labelMustNotStat->setToolTip(error);
     }
 }
 
@@ -747,11 +746,11 @@ void AutomatedRssDownloader::updateEpisodeFilterValidity()
 
     if (valid) {
         m_ui->lineEFilter->setStyleSheet("");
-        m_ui->lbl_epfilter_stat->setPixmap(QPixmap());
+        m_ui->labelEpFilterStat->setPixmap(QPixmap());
     }
     else {
         m_ui->lineEFilter->setStyleSheet("QLineEdit { color: #ff0000; }");
-        m_ui->lbl_epfilter_stat->setPixmap(GuiIconProvider::instance()->getIcon("task-attention").pixmap(16, 16));
+        m_ui->labelEpFilterStat->setPixmap(GuiIconProvider::instance()->getIcon("task-attention").pixmap(16, 16));
     }
 }
 

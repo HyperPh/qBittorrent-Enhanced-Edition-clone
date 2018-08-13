@@ -4,7 +4,6 @@ CONFIG += qt thread silent
 
 # C++11 support
 CONFIG += c++11
-DEFINES += BOOST_NO_CXX11_RVALUE_REFERENCES
 
 # Platform specific configuration
 win32: include(../winconf.pri)
@@ -73,11 +72,8 @@ include(base/base.pri)
 # Resource files
 QMAKE_RESOURCE_FLAGS += -compress 9 -threshold 5
 RESOURCES += \
-    icons.qrc \
-    lang.qrc \
-    searchengine.qrc
-
-# Translations
-TRANSLATIONS += $$files(lang/qbittorrent_*.ts)
+    icons/icons.qrc \
+    lang/lang.qrc \
+    searchengine/searchengine.qrc
 
 DESTDIR = .

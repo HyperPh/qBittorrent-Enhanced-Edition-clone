@@ -1,4 +1,5 @@
-set(QBT_WEBUI_HEADERS
+add_library(qbt_webui STATIC
+# headers
 api/apicontroller.h
 api/apierror.h
 api/appcontroller.h
@@ -13,9 +14,8 @@ api/serialize/serialize_torrent.h
 extra_translations.h
 webapplication.h
 webui.h
-)
 
-set(QBT_WEBUI_SOURCES
+# sources
 api/apicontroller.cpp
 api/apierror.cpp
 api/appcontroller.cpp
@@ -30,8 +30,6 @@ webapplication.cpp
 webui.cpp
 )
 
-qbt_target_sources(webui.qrc)
+qbt_target_sources(qBittorrent PRIVATE www/webui.qrc)
 
-add_library(qbt_webui STATIC ${QBT_WEBUI_HEADERS} ${QBT_WEBUI_SOURCES})
-target_link_libraries(qbt_webui qbt_base)
-
+target_link_libraries(qbt_webui PUBLIC qbt_base)

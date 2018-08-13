@@ -60,7 +60,7 @@ qreal Utils::Gui::screenScalingFactor(const QWidget *widget)
 #else
     return widget->devicePixelRatio();
 #endif
-#endif
+#endif // Q_OS_WIN
 }
 
 QPixmap Utils::Gui::scaledPixmap(const QString &path, const QWidget *widget, const int height)
@@ -73,7 +73,7 @@ QPixmap Utils::Gui::scaledPixmap(const QString &path, const QWidget *widget, con
 QPixmap Utils::Gui::scaledPixmapSvg(const QString &path, const QWidget *widget, const int baseHeight)
 {
     const int scaledHeight = baseHeight * Utils::Gui::screenScalingFactor(widget);
-    const QString normalizedKey = path + "@" + QString::number(scaledHeight);
+    const QString normalizedKey = path + '@' + QString::number(scaledHeight);
 
     QPixmap pm;
     QPixmapCache cache;

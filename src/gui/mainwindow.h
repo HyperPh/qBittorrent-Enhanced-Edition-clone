@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2006  Christophe Dumez
+ * Copyright (C) 2006  Christophe Dumez <chris@qbittorrent.org>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,8 +24,6 @@
  * modify file(s), you may extend this exception to your version of the file(s),
  * but you are not obligated to do so. If you do not wish to do so, delete this
  * exception statement from your version.
- *
- * Contact : chris@qbittorrent.org
  */
 
 #ifndef MAINWINDOW_H
@@ -40,25 +38,24 @@
 
 class QCloseEvent;
 class QFileSystemWatcher;
-class QShortcut;
 class QSplitter;
 class QTabWidget;
 class QTimer;
 
-class downloadFromURL;
-class SearchWidget;
-class RSSWidget;
-class about;
-class OptionsDialog;
-class TransferListWidget;
-class TransferListFiltersWidget;
-class PropertiesWidget;
-class StatusBar;
-class TorrentCreatorDlg;
+class AboutDialog;
+class DownloadFromURLDialog;
+class ExecutionLogWidget;
 class LineEdit;
-class ExecutionLog;
+class OptionsDialog;
 class PowerManagement;
+class PropertiesWidget;
+class RSSWidget;
+class SearchWidget;
 class StatsDialog;
+class StatusBar;
+class TorrentCreatorDialog;
+class TransferListFiltersWidget;
+class TransferListWidget;
 
 namespace BitTorrent
 {
@@ -70,7 +67,7 @@ namespace Ui
     class MainWindow;
 }
 
-class MainWindow: public QMainWindow
+class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
@@ -105,6 +102,7 @@ public:
     void showNotificationBaloon(QString title, QString msg) const;
 
 private slots:
+    void showFilterContextMenu(const QPoint &);
     void balloonClicked();
     void writeSettings();
     void readSettings();
@@ -176,8 +174,8 @@ private slots:
     void on_actionDownloadFromURL_triggered();
     void on_actionExit_triggered();
     void on_actionLock_triggered();
-    // Check for active torrents and set preventing from suspend state
-    void checkForActiveTorrents();
+    // Check for unpaused downloading or seeding torrents and prevent system suspend/sleep according to preferences
+    void updatePowerManagementState();
 #if defined(Q_OS_WIN) || defined(Q_OS_MAC)
     void checkProgramUpdate();
 #endif
@@ -227,10 +225,10 @@ private:
     QPointer<QTabWidget> m_tabs;
     QPointer<StatusBar> m_statusBar;
     QPointer<OptionsDialog> m_options;
-    QPointer<about> m_aboutDlg;
+    QPointer<AboutDialog> m_aboutDlg;
     QPointer<StatsDialog> m_statsDlg;
-    QPointer<TorrentCreatorDlg> m_createTorrentDlg;
-    QPointer<downloadFromURL> m_downloadFromURLDialog;
+    QPointer<TorrentCreatorDialog> m_createTorrentDlg;
+    QPointer<DownloadFromURLDialog> m_downloadFromURLDialog;
 #ifndef Q_OS_MAC
     QPointer<QSystemTrayIcon> m_systrayIcon;
     QPointer<QTimer> m_systrayCreator;
@@ -251,7 +249,7 @@ private:
     QSplitter *m_splitter;
     QPointer<SearchWidget> m_searchWidget;
     QPointer<RSSWidget> m_rssWidget;
-    QPointer<ExecutionLog> m_executionLog;
+    QPointer<ExecutionLogWidget> m_executionLog;
     // Power Management
     PowerManagement *m_pwr;
     QTimer *m_preventTimer;

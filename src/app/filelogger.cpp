@@ -26,11 +26,13 @@
  * exception statement from your version.
  */
 
+#include "filelogger.h"
+
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QTextStream>
-#include "filelogger.h"
+
 #include "base/logger.h"
 #include "base/utils/fs.h"
 
@@ -47,8 +49,8 @@ FileLogger::FileLogger(const QString &path, const bool backup, const int maxSize
     if (deleteOld)
         this->deleteOld(age, ageType);
 
-    const Logger* const logger = Logger::instance();
-    foreach (const Log::Msg& msg, logger->getMessages())
+    const Logger *const logger = Logger::instance();
+    foreach (const Log::Msg &msg, logger->getMessages())
         addLogMessage(msg);
 
     connect(logger, &Logger::newLogMessage, this, &FileLogger::addLogMessage);
@@ -61,7 +63,7 @@ FileLogger::~FileLogger()
     delete m_logFile;
 }
 
-void FileLogger::changePath(const QString& newPath)
+void FileLogger::changePath(const QString &newPath)
 {
     QString tmpPath = Utils::Fs::fromNativePath(newPath);
     QDir dir(tmpPath);

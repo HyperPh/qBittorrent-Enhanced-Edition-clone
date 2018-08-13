@@ -33,11 +33,12 @@
 #include <QPointer>
 #include <QWidget>
 
+class QShortcut;
 class QSignalMapper;
 class QTabWidget;
 
 class MainWindow;
-class SearchTab;
+class SearchJobWidget;
 
 namespace Ui
 {
@@ -68,6 +69,7 @@ private:
     void resultsCountUpdated();
     void tabStatusChanged(QWidget *tab);
     void selectMultipleBox(int index);
+    void toggleFocusBetweenLineEdits();
 
     void fillCatCombobox();
     void fillPluginComboBox();
@@ -80,9 +82,10 @@ private:
 
     Ui::SearchWidget *m_ui;
     QSignalMapper *m_tabStatusChangedMapper;
-    QPointer<SearchTab> m_currentSearchTab; // Selected tab
-    QPointer<SearchTab> m_activeSearchTab; // Tab with running search
-    QList<SearchTab *> m_allTabs; // To store all tabs
+    QPointer<SearchJobWidget> m_currentSearchTab; // Selected tab
+    QPointer<SearchJobWidget> m_activeSearchTab; // Tab with running search
+    QList<SearchJobWidget *> m_allTabs; // To store all tabs
     MainWindow *m_mainWindow;
     bool m_isNewQueryString;
+    QShortcut *m_focusSearchHotkey;
 };

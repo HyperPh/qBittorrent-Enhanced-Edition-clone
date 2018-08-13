@@ -40,7 +40,6 @@
 #endif
 
 #include <QDir>
-#include <QFile>
 #include <QPoint>
 #include <QSize>
 #include <QString>
@@ -79,10 +78,6 @@ namespace Utils
         QString osName();
         QString boostVersionString();
         QString libtorrentVersionString();
-
-        int pythonVersion();
-        QString pythonExecutable();
-        QString pythonVersionComplete();
 
         QString unitString(SizeUnit unit);
 

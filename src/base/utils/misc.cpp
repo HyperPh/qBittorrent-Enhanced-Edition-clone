@@ -45,12 +45,9 @@
 #endif
 
 #include <QByteArray>
-#include <QDateTime>
 #include <QDebug>
-#include <QDir>
 #include <QFileInfo>
 #include <QProcess>
-#include <QRegExp>
 #include <QRegularExpression>
 #include <QSysInfo>
 #include <QUrl>
@@ -142,7 +139,7 @@ void Utils::Misc::shutdownComputer(const ShutdownDialogAction &action)
     else
         EventToSend = kAEShutDown;
     AEAddressDesc targetDesc;
-    static const ProcessSerialNumber kPSNOfSystemProcess = {0, kSystemProcess};
+    const ProcessSerialNumber kPSNOfSystemProcess = {0, kSystemProcess};
     AppleEvent eventReply = {typeNull, NULL};
     AppleEvent appleEventToSend = {typeNull, NULL};
 
@@ -238,105 +235,7 @@ QPoint Utils::Misc::screenCenter(const QWidget *w)
     QRect r = desktop->availableGeometry(scrn);
     return QPoint(r.x() + (r.width() - w->frameSize().width()) / 2, r.y() + (r.height() - w->frameSize().height()) / 2);
 }
-
 #endif
-
-/**
- * Detects the python version.
- */
-int Utils::Misc::pythonVersion()
-{
-    static int version = -1;
-    if (version < 0) {
-        QString versionComplete = pythonVersionComplete().trimmed();
-        QStringList splitted = versionComplete.split('.');
-        if (splitted.size() > 1) {
-            int highVer = splitted.at(0).toInt();
-            if ((highVer == 2) || (highVer == 3))
-                version = highVer;
-        }
-    }
-    return version;
-}
-
-/**
- * Detects the python executable by calling "python --version".
- */
-QString Utils::Misc::pythonExecutable()
-{
-    static QString executable;
-    if (executable.isEmpty()) {
-        QProcess pythonProc;
-#if defined(Q_OS_UNIX)
-        /*
-         * On Unix-Like Systems python2 and python3 should always exist
-         * http://legacy.python.org/dev/peps/pep-0394/
-         */
-        pythonProc.start("python3", {"--version"}, QIODevice::ReadOnly);
-        if (pythonProc.waitForFinished() && (pythonProc.exitCode() == 0)) {
-            executable = "python3";
-            return executable;
-        }
-        pythonProc.start("python2", {"--version"}, QIODevice::ReadOnly);
-        if (pythonProc.waitForFinished() && (pythonProc.exitCode() == 0)) {
-            executable = "python2";
-            return executable;
-        }
-#endif
-        // Look for "python" in Windows and in UNIX if "python2" and "python3" are
-        // not detected.
-        pythonProc.start("python", {"--version"}, QIODevice::ReadOnly);
-        if (pythonProc.waitForFinished() && (pythonProc.exitCode() == 0))
-            executable = "python";
-        else
-            Logger::instance()->addMessage(QCoreApplication::translate("misc", "Python not detected"), Log::INFO);
-    }
-    return executable;
-}
-
-/**
- * Returns the complete python version
- * eg 2.7.9
- * Make sure to have setup python first
- */
-QString Utils::Misc::pythonVersionComplete()
-{
-    static QString version;
-    if (version.isEmpty()) {
-        if (pythonExecutable().isEmpty())
-            return version;
-        QProcess pythonProc;
-        pythonProc.start(pythonExecutable(), {"--version"}, QIODevice::ReadOnly);
-        if (pythonProc.waitForFinished() && (pythonProc.exitCode() == 0)) {
-            QByteArray output = pythonProc.readAllStandardOutput();
-            if (output.isEmpty())
-                output = pythonProc.readAllStandardError();
-
-            // Software 'Anaconda' installs its own python interpreter
-            // and `python --version` returns a string like this:
-            // `Python 3.4.3 :: Anaconda 2.3.0 (64-bit)`
-            const QList<QByteArray> outSplit = output.split(' ');
-            if (outSplit.size() > 1) {
-                version = outSplit.at(1).trimmed();
-                Logger::instance()->addMessage(QCoreApplication::translate("misc", "Python version: %1").arg(version), Log::INFO);
-            }
-
-            // If python doesn't report a 3-piece version e.g. 3.6.1
-            // then fill the missing pieces with zero
-            const QStringList verSplit = version.split('.', QString::SkipEmptyParts);
-            if (verSplit.size() < 3) {
-                for (int i = verSplit.size(); i < 3; ++i) {
-                    if (version.endsWith('.'))
-                        version.append('0');
-                    else
-                        version.append(".0");
-                }
-                Logger::instance()->addMessage(QCoreApplication::translate("misc", "Normalized Python version: %1").arg(version), Log::INFO);
-            }
-        }
-    }
-    return version;
-}
 
 QString Utils::Misc::unitString(Utils::Misc::SizeUnit unit)
 {
@@ -398,55 +297,50 @@ qlonglong Utils::Misc::sizeInBytes(qreal size, Utils::Misc::SizeUnit unit)
 
 bool Utils::Misc::isPreviewable(const QString &extension)
 {
-    static QSet<QString> multimedia_extensions;
-    if (multimedia_extensions.empty()) {
-        multimedia_extensions.insert("3GP");
-        multimedia_extensions.insert("AAC");
-        multimedia_extensions.insert("AC3");
-        multimedia_extensions.insert("AIF");
-        multimedia_extensions.insert("AIFC");
-        multimedia_extensions.insert("AIFF");
-        multimedia_extensions.insert("ASF");
-        multimedia_extensions.insert("AU");
-        multimedia_extensions.insert("AVI");
-        multimedia_extensions.insert("FLAC");
-        multimedia_extensions.insert("FLV");
-        multimedia_extensions.insert("M3U");
-        multimedia_extensions.insert("M4A");
-        multimedia_extensions.insert("M4P");
-        multimedia_extensions.insert("M4V");
-        multimedia_extensions.insert("MID");
-        multimedia_extensions.insert("MKV");
-        multimedia_extensions.insert("MOV");
-        multimedia_extensions.insert("MP2");
-        multimedia_extensions.insert("MP3");
-        multimedia_extensions.insert("MP4");
-        multimedia_extensions.insert("MPC");
-        multimedia_extensions.insert("MPE");
-        multimedia_extensions.insert("MPEG");
-        multimedia_extensions.insert("MPG");
-        multimedia_extensions.insert("MPP");
-        multimedia_extensions.insert("OGG");
-        multimedia_extensions.insert("OGM");
-        multimedia_extensions.insert("OGV");
-        multimedia_extensions.insert("QT");
-        multimedia_extensions.insert("RA");
-        multimedia_extensions.insert("RAM");
-        multimedia_extensions.insert("RM");
-        multimedia_extensions.insert("RMV");
-        multimedia_extensions.insert("RMVB");
-        multimedia_extensions.insert("SWA");
-        multimedia_extensions.insert("SWF");
-        multimedia_extensions.insert("VOB");
-        multimedia_extensions.insert("WAV");
-        multimedia_extensions.insert("WMA");
-        multimedia_extensions.insert("WMV");
-    }
-
-    if (extension.isEmpty())
-        return false;
-
-    return multimedia_extensions.contains(extension.toUpper());
+    static const QSet<QString> multimediaExtensions = {
+        "3GP",
+        "AAC",
+        "AC3",
+        "AIF",
+        "AIFC",
+        "AIFF",
+        "ASF",
+        "AU",
+        "AVI",
+        "FLAC",
+        "FLV",
+        "M3U",
+        "M4A",
+        "M4P",
+        "M4V",
+        "MID",
+        "MKV",
+        "MOV",
+        "MP2",
+        "MP3",
+        "MP4",
+        "MPC",
+        "MPE",
+        "MPEG",
+        "MPG",
+        "MPP",
+        "OGG",
+        "OGM",
+        "OGV",
+        "QT",
+        "RA",
+        "RAM",
+        "RM",
+        "RMV",
+        "RMVB",
+        "SWA",
+        "SWF",
+        "VOB",
+        "WAV",
+        "WMA",
+        "WMV"
+    };
+    return multimediaExtensions.contains(extension.toUpper());
 }
 
 // Take a number of seconds and return an user-friendly
@@ -529,7 +423,7 @@ bool Utils::Misc::isUrl(const QString &s)
 QString Utils::Misc::parseHtmlLinks(const QString &rawText)
 {
     QString result = rawText;
-    static QRegExp reURL(
+    static const QRegularExpression reURL(
         "(\\s|^)"                                             // start with whitespace or beginning of line
         "("
         "("                                              // case 1 -- URL with scheme
@@ -576,12 +470,11 @@ QString Utils::Misc::parseHtmlLinks(const QString &rawText)
         ")"
         );
 
-
     // Capture links
     result.replace(reURL, "\\1<a href=\"\\2\">\\2</a>");
 
     // Capture links without scheme
-    static QRegExp reNoScheme("<a\\s+href=\"(?!http(s?))([a-zA-Z0-9\\?%=&/_\\.-:#]+)\\s*\">");
+    static const QRegularExpression reNoScheme("<a\\s+href=\"(?!https?)([a-zA-Z0-9\\?%=&/_\\.-:#]+)\\s*\">");
     result.replace(reNoScheme, "<a href=\"http://\\1\">");
 
     // to preserve plain text formatting
@@ -608,7 +501,7 @@ void Utils::Misc::openFolderSelect(const QString &absolutePath)
     const QString path = Utils::Fs::fromNativePath(absolutePath);
     // If the item to select doesn't exist, try to open its parent
     if (!QFileInfo::exists(path)) {
-        openPath(path.left(path.lastIndexOf("/")));
+        openPath(path.left(path.lastIndexOf('/')));
         return;
     }
 #ifdef Q_OS_WIN
@@ -632,7 +525,7 @@ void Utils::Misc::openFolderSelect(const QString &absolutePath)
                  || (output == "nautilus-folder-handler.desktop")) {
         proc.start("nautilus", {"--version"});
         proc.waitForFinished();
-        const QString nautilusVerStr = QString(proc.readLine()).remove(QRegExp("[^0-9.]"));
+        const QString nautilusVerStr = QString(proc.readLine()).remove(QRegularExpression("[^0-9.]"));
         using NautilusVersion = Utils::Version<int, 3>;
         if (NautilusVersion::tryParse(nautilusVerStr, {1, 0, 0}) > NautilusVersion {3, 28})
             proc.startDetached("nautilus", {Utils::Fs::toNativePath(path)});
@@ -647,10 +540,10 @@ void Utils::Misc::openFolderSelect(const QString &absolutePath)
     }
     else {
         // "caja" manager can't pinpoint the file, see: https://github.com/qbittorrent/qBittorrent/issues/5003
-        openPath(path.left(path.lastIndexOf("/")));
+        openPath(path.left(path.lastIndexOf('/')));
     }
 #else
-    openPath(path.left(path.lastIndexOf("/")));
+    openPath(path.left(path.lastIndexOf('/')));
 #endif
 }
 

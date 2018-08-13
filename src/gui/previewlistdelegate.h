@@ -33,11 +33,12 @@
 #include <QItemDelegate>
 #include <QModelIndex>
 #include <QPainter>
+#include <QStyleOptionProgressBar>
+#include <QStyleOptionViewItem>
+
 #ifdef Q_OS_WIN
 #include <QProxyStyle>
 #endif
-#include <QStyleOptionProgressBar>
-#include <QStyleOptionViewItem>
 
 #include "base/utils/misc.h"
 #include "base/utils/string.h"
@@ -69,7 +70,7 @@ public:
                 QStyleOptionProgressBar newopt;
                 qreal progress = index.data().toDouble() * 100.;
                 newopt.rect = opt.rect;
-                newopt.text = ((progress == 100.0) ? QString("100%") : Utils::String::fromDouble(progress, 1) + "%");
+                newopt.text = ((progress == 100.0) ? QString("100%") : Utils::String::fromDouble(progress, 1) + '%');
                 newopt.progress = static_cast<int>(progress);
                 newopt.maximum = 100;
                 newopt.minimum = 0;

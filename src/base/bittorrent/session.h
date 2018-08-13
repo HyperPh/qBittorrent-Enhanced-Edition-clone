@@ -140,7 +140,7 @@ namespace BitTorrent
     class Tracker;
     class MagnetUri;
     class TrackerEntry;
-    struct AddTorrentData;
+    struct CreateTorrentParams;
 
     struct TorrentStatusReport
     {
@@ -385,6 +385,8 @@ namespace BitTorrent
         void setAnnounceToAllTrackers(bool val);
         bool announceToAllTiers() const;
         void setAnnounceToAllTiers(bool val);
+        int asyncIOThreads() const;
+        void setAsyncIOThreads(int num);
         int diskCacheSize() const;
         void setDiskCacheSize(int size);
         int diskCacheTTL() const;
@@ -462,6 +464,7 @@ namespace BitTorrent
         TorrentStatusReport torrentStatusReport() const;
         bool hasActiveTorrents() const;
         bool hasUnfinishedTorrents() const;
+        bool hasRunningSeed() const;
         const SessionStatus &status() const;
         const CacheStatus &cacheStatus() const;
         quint64 getAlltimeDL() const;
@@ -505,6 +508,7 @@ namespace BitTorrent
 
         // TorrentHandle interface
         void handleTorrentShareLimitChanged(TorrentHandle *const torrent);
+        void handleTorrentNameChanged(TorrentHandle *const torrent);
         void handleTorrentSavePathChanged(TorrentHandle *const torrent);
         void handleTorrentCategoryChanged(TorrentHandle *const torrent, const QString &oldCategory);
         void handleTorrentTagAdded(TorrentHandle *const torrent, const QString &tag);
@@ -577,7 +581,7 @@ namespace BitTorrent
         void generateResumeData(bool final = false);
         void handleIPFilterParsed(int ruleCount);
         void handleIPFilterError();
-        void handleDownloadFinished(const QString &url, const QString &filePath);
+        void handleDownloadFinished(const QString &url, const QByteArray &data);
         void handleDownloadFailed(const QString &url, const QString &reason);
         void handleRedirectedToMagnet(const QString &url, const QString &magnetUri);
 
@@ -632,7 +636,7 @@ namespace BitTorrent
         int parseOfflineFilterFile(QString ipDat, libtorrent::ip_filter &filter);
         void loadOfflineFilter();
 
-        bool addTorrent_impl(AddTorrentData addData, const MagnetUri &magnetUri,
+        bool addTorrent_impl(CreateTorrentParams params, const MagnetUri &magnetUri,
                              TorrentInfo torrentInfo = TorrentInfo(),
                              const QByteArray &fastresumeData = QByteArray());
         bool findIncompleteFiles(TorrentInfo &torrentInfo, QString &savePath) const;
@@ -688,6 +692,7 @@ namespace BitTorrent
         CachedSettingValue<QString> m_IPFilterFile;
         CachedSettingValue<bool> m_announceToAllTrackers;
         CachedSettingValue<bool> m_announceToAllTiers;
+        CachedSettingValue<int> m_asyncIOThreads;
         CachedSettingValue<int> m_diskCacheSize;
         CachedSettingValue<int> m_diskCacheTTL;
         CachedSettingValue<bool> m_useOSCache;
@@ -795,7 +800,7 @@ namespace BitTorrent
 
         QHash<InfoHash, TorrentInfo> m_loadedMetadata;
         QHash<InfoHash, TorrentHandle *> m_torrents;
-        QHash<InfoHash, AddTorrentData> m_addingTorrents;
+        QHash<InfoHash, CreateTorrentParams> m_addingTorrents;
         QHash<QString, AddTorrentParams> m_downloadedTorrents;
         QHash<InfoHash, RemovingTorrentData> m_removingTorrents;
         TorrentStatusReport m_torrentStatusReport;

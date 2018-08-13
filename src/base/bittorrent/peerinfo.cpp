@@ -261,8 +261,8 @@ QString PeerInfo::connectionType() const
 
 void PeerInfo::calcRelevance(const TorrentHandle *torrent)
 {
-    const QBitArray &allPieces = torrent->pieces();
-    const QBitArray &peerPieces = pieces();
+    const QBitArray allPieces = torrent->pieces();
+    const QBitArray peerPieces = pieces();
 
     int localMissing = 0;
     int remoteHaves = 0;
@@ -392,7 +392,7 @@ void PeerInfo::determineFlags()
 
     // L = Peer is local
     if (fromLSD()) {
-        m_flags += "L";
+        m_flags += 'L';
         flagsDescriptionList += "L = "
                 + tr("peer from LSD");
     }

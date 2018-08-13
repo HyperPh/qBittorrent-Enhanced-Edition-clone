@@ -27,7 +27,6 @@
  * exception statement from your version.
  */
 
-#include <QString>
 #include "iconprovider.h"
 
 IconProvider::IconProvider(QObject *parent)
@@ -56,7 +55,7 @@ IconProvider *IconProvider::instance()
     return m_instance;
 }
 
-QString IconProvider::getIconPath(const QString &iconId)
+QString IconProvider::getIconPath(const QString &iconId) const
 {
     return ":/icons/qbt-theme/" + iconId + ".png";
 }

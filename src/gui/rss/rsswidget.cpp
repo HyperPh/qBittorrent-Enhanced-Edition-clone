@@ -36,6 +36,7 @@
 #include <QDragMoveEvent>
 #include <QMenu>
 #include <QMessageBox>
+#include <QRegularExpression>
 #include <QStandardItemModel>
 #include <QString>
 
@@ -307,7 +308,7 @@ void RSSWidget::loadFoldersOpenState()
     const QStringList openedFolders = Preferences::instance()->getRssOpenFolders();
     foreach (const QString &varPath, openedFolders) {
         QTreeWidgetItem *parent = nullptr;
-        foreach (const QString &name, varPath.split("\\")) {
+        foreach (const QString &name, varPath.split('\\')) {
             int nbChildren = (parent ? parent->childCount() : m_feedListWidget->topLevelItemCount());
             for (int i = 0; i < nbChildren; ++i) {
                 QTreeWidgetItem *child = (parent ? parent->child(i) : m_feedListWidget->topLevelItem(i));
@@ -413,7 +414,7 @@ void RSSWidget::copySelectedFeedsURL()
         if (auto feed = qobject_cast<RSS::Feed *>(m_feedListWidget->getRSSItem(item)))
             URLs << feed->url();
     }
-    qApp->clipboard()->setText(URLs.join("\n"));
+    qApp->clipboard()->setText(URLs.join('\n'));
 }
 
 void RSSWidget::handleCurrentFeedItemChanged(QTreeWidgetItem *currentItem)
@@ -461,10 +462,10 @@ void RSSWidget::handleCurrentArticleItemChanged(QListWidgetItem *currentItem, QL
     }
     else {
         QString description = article->description();
-        QRegExp rx;
+        QRegularExpression rx;
         // If description is plain text, replace BBCode tags with HTML and wrap everything in <pre></pre> so it looks nice
-        rx.setMinimal(true);
-        rx.setCaseSensitivity(Qt::CaseInsensitive);
+        rx.setPatternOptions(QRegularExpression::InvertedGreedinessOption
+            | QRegularExpression::CaseInsensitiveOption);
 
         rx.setPattern("\\[img\\](.+)\\[/img\\]");
         description = description.replace(rx, "<img src=\"\\1\">");

@@ -37,6 +37,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QStorageInfo>
+#include <QRegularExpression>
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -77,14 +78,14 @@ QString Utils::Fs::fromNativePath(const QString &path)
 QString Utils::Fs::fileExtension(const QString &filename)
 {
     QString ext = QString(filename).remove(QB_EXT);
-    const int pointIndex = ext.lastIndexOf(".");
+    const int pointIndex = ext.lastIndexOf('.');
     return (pointIndex >= 0) ? ext.mid(pointIndex + 1) : QString();
 }
 
 QString Utils::Fs::fileName(const QString &filePath)
 {
     QString path = fromNativePath(filePath);
-    const int slashIndex = path.lastIndexOf("/");
+    const int slashIndex = path.lastIndexOf('/');
     if (slashIndex == -1)
         return path;
     return path.mid(slashIndex + 1);
@@ -93,7 +94,7 @@ QString Utils::Fs::fileName(const QString &filePath)
 QString Utils::Fs::folderName(const QString &filePath)
 {
     QString path = fromNativePath(filePath);
-    const int slashIndex = path.lastIndexOf("/");
+    const int slashIndex = path.lastIndexOf('/');
     if (slashIndex == -1)
         return path;
     return path.left(slashIndex);
@@ -109,7 +110,7 @@ bool Utils::Fs::smartRemoveEmptyFolderTree(const QString &path)
     if (path.isEmpty() || !QDir(path).exists())
         return true;
 
-    static const QStringList deleteFilesList = {
+    const QStringList deleteFilesList = {
         // Windows
         "Thumbs.db",
         "desktop.ini",
@@ -120,13 +121,13 @@ bool Utils::Fs::smartRemoveEmptyFolderTree(const QString &path)
     };
 
     // travel from the deepest folder and remove anything unwanted on the way out.
-    QStringList dirList(path + "/");  // get all sub directories paths
+    QStringList dirList(path + '/');  // get all sub directories paths
     QDirIterator iter(path, (QDir::AllDirs | QDir::NoDotAndDotDot), QDirIterator::Subdirectories);
     while (iter.hasNext())
-        dirList << iter.next() + "/";
+        dirList << iter.next() + '/';
     // sort descending by directory depth
     std::sort(dirList.begin(), dirList.end()
-              , [](const QString &l, const QString &r) { return l.count("/") > r.count("/"); });
+              , [](const QString &l, const QString &r) { return l.count('/') > r.count('/'); });
 
     for (const QString &p : qAsConst(dirList)) {
         // remove unwanted files
@@ -138,7 +139,7 @@ bool Utils::Fs::smartRemoveEmptyFolderTree(const QString &path)
         QDir dir(p);
         QStringList tmpFileList = dir.entryList(QDir::Files);
         for (const QString &f : tmpFileList) {
-            if (f.endsWith("~"))
+            if (f.endsWith('~'))
                 forceRemove(p + f);
         }
 
@@ -209,7 +210,7 @@ bool Utils::Fs::sameFiles(const QString &path1, const QString &path2)
     if (!f2.open(QIODevice::ReadOnly)) return false;
 
     const int readSize = 1024 * 1024;  // 1 MiB
-    while(!f1.atEnd() && !f2.atEnd()) {
+    while (!f1.atEnd() && !f2.atEnd()) {
         if (f1.read(readSize) != f2.read(readSize))
             return false;
     }
@@ -218,7 +219,7 @@ bool Utils::Fs::sameFiles(const QString &path1, const QString &path2)
 
 QString Utils::Fs::toValidFileSystemName(const QString &name, bool allowSeparators, const QString &pad)
 {
-    QRegExp regex(allowSeparators ? "[:?\"*<>|]+" : "[\\\\/:?\"*<>|]+");
+    const QRegularExpression regex(allowSeparators ? "[:?\"*<>|]+" : "[\\\\/:?\"*<>|]+");
 
     QString validName = name.trimmed();
     validName.replace(regex, pad);
@@ -231,7 +232,7 @@ bool Utils::Fs::isValidFileSystemName(const QString &name, bool allowSeparators)
 {
     if (name.isEmpty()) return false;
 
-    QRegExp regex(allowSeparators ? "[:?\"*<>|]" : "[\\\\/:?\"*<>|]");
+    const QRegularExpression regex(allowSeparators ? "[:?\"*<>|]" : "[\\\\/:?\"*<>|]");
     return !name.contains(regex);
 }
 
@@ -245,9 +246,9 @@ qint64 Utils::Fs::freeDiskSpaceOnPath(const QString &path)
 QString Utils::Fs::branchPath(const QString &filePath, QString *removed)
 {
     QString ret = fromNativePath(filePath);
-    if (ret.endsWith("/"))
+    if (ret.endsWith('/'))
         ret.chop(1);
-    const int slashIndex = ret.lastIndexOf("/");
+    const int slashIndex = ret.lastIndexOf('/');
     if (slashIndex >= 0) {
         if (removed)
             *removed = ret.mid(slashIndex + 1);

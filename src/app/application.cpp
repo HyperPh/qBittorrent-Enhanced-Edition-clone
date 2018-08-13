@@ -31,17 +31,33 @@
 
 #include <algorithm>
 
-#ifdef Q_OS_WIN
-#include <memory>
-#endif
-
 #include <QAtomicInt>
 #include <QDebug>
-#include <QFileInfo>
 #include <QLibraryInfo>
 #include <QLocale>
 #include <QProcess>
 #include <QSysInfo>
+
+#ifdef Q_OS_WIN
+#include <memory>
+#include <Shellapi.h>
+#endif
+
+#ifndef DISABLE_GUI
+#ifdef Q_OS_WIN
+#include <QSessionManager>
+#include <QSharedMemory>
+#endif // Q_OS_WIN
+#ifdef Q_OS_MAC
+#include <QFileOpenEvent>
+#endif // Q_OS_MAC
+#include "addnewtorrentdialog.h"
+#include "gui/guiiconprovider.h"
+#include "mainwindow.h"
+#include "shutdownconfirmdialog.h"
+#else // DISABLE_GUI
+#include <cstdio>
+#endif // DISABLE_GUI
 
 #include "base/bittorrent/session.h"
 #include "base/bittorrent/torrenthandle.h"
@@ -62,28 +78,6 @@
 #include "base/utils/string.h"
 #include "filelogger.h"
 
-#ifndef DISABLE_GUI
-#ifdef Q_OS_WIN
-#include <QSessionManager>
-#include <QSharedMemory>
-#endif // Q_OS_WIN
-#ifdef Q_OS_MAC
-#include <QFileOpenEvent>
-#include <QFont>
-#include <QUrl>
-#endif // Q_OS_MAC
-#include "addnewtorrentdialog.h"
-#include "gui/guiiconprovider.h"
-#include "mainwindow.h"
-#include "shutdownconfirmdlg.h"
-#else // DISABLE_GUI
-#include <cstdio>
-#endif // DISABLE_GUI
-
-#ifdef Q_OS_WIN
-#include <Shellapi.h>
-#endif
-
 #ifndef DISABLE_WEBUI
 #include "webui/webui.h"
 #endif
@@ -102,13 +96,13 @@ namespace
     const QString KEY_FILELOGGER_AGE = FILELOGGER_SETTINGS_KEY("Age");
     const QString KEY_FILELOGGER_AGETYPE = FILELOGGER_SETTINGS_KEY("AgeType");
 
-    //just a shortcut
+    // just a shortcut
     inline SettingsStorage *settings() { return  SettingsStorage::instance(); }
 
-    const QString LOG_FOLDER("logs");
-    const char PARAMS_SEPARATOR[] = "|";
+    const QString LOG_FOLDER = QStringLiteral("logs");
+    const QChar PARAMS_SEPARATOR = '|';
 
-    const QString DEFAULT_PORTABLE_MODE_PROFILE_DIR = QLatin1String("profile");
+    const QString DEFAULT_PORTABLE_MODE_PROFILE_DIR = QStringLiteral("profile");
 
     const int MIN_FILELOG_SIZE = 1024; // 1KiB
     const int MAX_FILELOG_SIZE = 1000 * 1024 * 1024; // 1000MiB
@@ -261,17 +255,17 @@ void Application::setFileLoggerAge(const int value)
 int Application::fileLoggerAgeType() const
 {
     int val = settings()->loadValue(KEY_FILELOGGER_AGETYPE, 1).toInt();
-    return (val < 0 || val > 2) ? 1 : val;
+    return ((val < 0) || (val > 2)) ? 1 : val;
 }
 
 void Application::setFileLoggerAgeType(const int value)
 {
-    settings()->storeValue(KEY_FILELOGGER_AGETYPE, (value < 0 || value > 2) ? 1 : value);
+    settings()->storeValue(KEY_FILELOGGER_AGETYPE, ((value < 0) || (value > 2)) ? 1 : value);
 }
 
 void Application::processMessage(const QString &message)
 {
-    QStringList params = message.split(QLatin1String(PARAMS_SEPARATOR), QString::SkipEmptyParts);
+    QStringList params = message.split(PARAMS_SEPARATOR, QString::SkipEmptyParts);
     // If Application is not running (i.e., other
     // components are not ready) store params
     if (m_running)
@@ -338,12 +332,12 @@ void Application::runExternalProgram(const BitTorrent::TorrentHandle *torrent) c
 void Application::sendNotificationEmail(const BitTorrent::TorrentHandle *torrent)
 {
     // Prepare mail content
-    const QString content = tr("Torrent name: %1").arg(torrent->name()) + "\n"
-        + tr("Torrent size: %1").arg(Utils::Misc::friendlyUnit(torrent->wantedSize())) + "\n"
+    const QString content = tr("Torrent name: %1").arg(torrent->name()) + '\n'
+        + tr("Torrent size: %1").arg(Utils::Misc::friendlyUnit(torrent->wantedSize())) + '\n'
         + tr("Save path: %1").arg(torrent->savePath()) + "\n\n"
         + tr("The torrent was downloaded in %1.", "The torrent was downloaded in 1 hour and 20 seconds")
             .arg(Utils::Misc::userFriendlyDuration(torrent->activeTime())) + "\n\n\n"
-        + tr("Thank you for using qBittorrent.") + "\n";
+        + tr("Thank you for using qBittorrent.") + '\n';
 
     // Send the notification email
     const Preferences *pref = Preferences::instance();
@@ -394,7 +388,7 @@ void Application::allTorrentsFinished()
         // do nothing & skip confirm
     }
     else {
-        if (!ShutdownConfirmDlg::askForConfirmation(m_window, action)) return;
+        if (!ShutdownConfirmDialog::askForConfirmation(m_window, action)) return;
     }
 #endif // DISABLE_GUI
 
@@ -415,7 +409,7 @@ void Application::allTorrentsFinished()
 
 bool Application::sendParams(const QStringList &params)
 {
-    return sendMessage(params.join(QLatin1String(PARAMS_SEPARATOR)));
+    return sendMessage(params.join(PARAMS_SEPARATOR));
 }
 
 // As program parameters, we can get paths or urls.
@@ -523,7 +517,7 @@ int Application::exec(const QStringList &params)
 
 #ifdef DISABLE_GUI
 #ifndef DISABLE_WEBUI
-    Preferences* const pref = Preferences::instance();
+    Preferences *const pref = Preferences::instance();
     // Display some information to the user
     const QString mesg = QString("\n******** %1 ********\n").arg(tr("Information"))
         + tr("To control qBittorrent, access the Web UI at %1")
@@ -619,7 +613,7 @@ bool Application::notify(QObject *receiver, QEvent *event)
 
 void Application::initializeTranslation()
 {
-    Preferences* const pref = Preferences::instance();
+    Preferences *const pref = Preferences::instance();
     // Load translation
     QString localeStr = pref->getLocale();
 
@@ -685,7 +679,7 @@ void Application::cleanup()
 
 #ifndef DISABLE_GUI
     if (m_window) {
-        // Hide the window and not leave it on screen as
+        // Hide the window and don't leave it on screen as
         // unresponsive. Also for Windows take the WinId
         // after it's hidden, because hide() may cause a
         // WinId change.

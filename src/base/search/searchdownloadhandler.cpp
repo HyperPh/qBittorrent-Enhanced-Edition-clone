@@ -30,8 +30,8 @@
 
 #include <QProcess>
 
+#include "../utils/foreignapps.h"
 #include "../utils/fs.h"
-#include "../utils/misc.h"
 #include "searchpluginmanager.h"
 
 SearchDownloadHandler::SearchDownloadHandler(const QString &siteUrl, const QString &url, SearchPluginManager *manager)
@@ -48,7 +48,7 @@ SearchDownloadHandler::SearchDownloadHandler(const QString &siteUrl, const QStri
         url
     };
     // Launch search
-    m_downloadProcess->start(Utils::Misc::pythonExecutable(), params, QIODevice::ReadOnly);
+    m_downloadProcess->start(Utils::ForeignApps::pythonInfo().executableName, params, QIODevice::ReadOnly);
 }
 
 void SearchDownloadHandler::downloadProcessFinished(int exitcode)

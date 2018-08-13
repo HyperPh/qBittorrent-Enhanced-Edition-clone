@@ -30,7 +30,6 @@
 #define PEERLISTSORTMODEL_H
 
 #include <QSortFilterProxyModel>
-#include <QStringList>
 
 #include "peerlistdelegate.h"
 
@@ -54,7 +53,7 @@ protected:
                 const QString strR = right.data().toString();
                 const int result = Utils::String::naturalCompare(strL, strR, Qt::CaseInsensitive);
                 return (result < 0);
-        }
+            }
             break;
         default:
             return QSortFilterProxyModel::lessThan(left, right);

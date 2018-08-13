@@ -75,7 +75,7 @@ var DynamicTable = new Class({
             var n = 2;
 
             while (panel.clientWidth != panel.offsetWidth && n > 0) { // is panel vertical scrollbar visible ?
-                n--;
+                --n;
                 h -= 0.5;
                 $(this.dynamicTableDivId).style.height = h + 'px';
             }
@@ -214,7 +214,7 @@ var DynamicTable = new Class({
                 var val = localStorage.getItem('columns_order_' + this.dynamicTableDivId).split(',');
                 val.erase(el.columnName);
                 var pos = val.indexOf(this.lastHoverTh.columnName);
-                if (this.dropSide === 'right') pos++;
+                if (this.dropSide === 'right') ++pos;
                 val.splice(pos, 0, el.columnName);
                 localStorage.setItem('columns_order_' + this.dynamicTableDivId, val.join(','));
                 this.loadColumnsOrder();
@@ -239,7 +239,7 @@ var DynamicTable = new Class({
 
         var ths = this.fixedTableHeader.getElements('th');
 
-        for (var i = 0; i < ths.length; i++) {
+        for (var i = 0; i < ths.length; ++i) {
             var th = ths[i];
             th.addEvent('mousemove', mouseMoveFn);
             th.addEvent('mouseout', mouseOutFn);
@@ -262,7 +262,7 @@ var DynamicTable = new Class({
             DynamicTableHeaderContextMenuClass = new Class({
                 Extends: ContextMenu,
                 updateMenuItems: function() {
-                    for (var i = 0; i < this.dynamicTable.columns.length; i++) {
+                    for (var i = 0; i < this.dynamicTable.columns.length; ++i) {
                         if (this.dynamicTable.columns[i].caption === '')
                             continue;
                         if (this.dynamicTable.columns[i].visible !== '0')
@@ -304,7 +304,7 @@ var DynamicTable = new Class({
             this.showColumn(action, this.columns[action].visible === '0');
         }.bind(this);
 
-        for (var i = 0; i < this.columns.length; i++) {
+        for (var i = 0; i < this.columns.length; ++i) {
             var text = this.columns[i].caption;
             if (text === '')
                 continue;
@@ -370,17 +370,17 @@ var DynamicTable = new Class({
                 columnsOrder.push(v);
         }.bind(this));
 
-        for (i = 0; i < this.columns.length; i++)
+        for (i = 0; i < this.columns.length; ++i)
             if (!columnsOrder.contains(this.columns[i].name))
                 columnsOrder.push(this.columns[i].name);
 
-        for (i = 0; i < this.columns.length; i++)
+        for (i = 0; i < this.columns.length; ++i)
             this.columns[i] = this.columns[columnsOrder[i]];
     },
 
     saveColumnsOrder: function() {
         val = '';
-        for (i = 0; i < this.columns.length; i++) {
+        for (i = 0; i < this.columns.length; ++i) {
             if (i > 0)
                 val += ',';
             val += this.columns[i].name;
@@ -396,7 +396,7 @@ var DynamicTable = new Class({
     updateHeader: function(header) {
         var ths = header.getElements('th');
 
-        for (var i = 0; i < ths.length; i++) {
+        for (var i = 0; i < ths.length; ++i) {
             th = ths[i];
             th._this = this;
             th.setAttribute('title', this.columns[i].caption);
@@ -411,7 +411,7 @@ var DynamicTable = new Class({
     },
 
     getColumnPos: function(columnName) {
-        for (var i = 0; i < this.columns.length; i++)
+        for (var i = 0; i < this.columns.length; ++i)
             if (this.columns[i].name == columnName)
                 return i;
         return -1;
@@ -431,13 +431,13 @@ var DynamicTable = new Class({
         if (visible) {
             ths[pos].removeClass('invisible');
             fths[pos].removeClass('invisible');
-            for (var i = 0; i < trs.length; i++)
+            for (var i = 0; i < trs.length; ++i)
                 trs[i].getElements('td')[pos].removeClass('invisible');
         }
         else {
             ths[pos].addClass('invisible');
             fths[pos].addClass('invisible');
-            for (var j = 0; j < trs.length; j++)
+            for (var j = 0; j < trs.length; ++j)
                 trs[j].getElements('td')[pos].addClass('invisible');
         }
         if (this.columns[pos].onResize !== null) {
@@ -465,6 +465,10 @@ var DynamicTable = new Class({
         return '';
     },
 
+    isRowSelected: function(rowId) {
+        return this.selectedRows.contains(rowId);
+    },
+
     altRow: function() {
         if (!MUI.ieLegacySupport)
             return;
@@ -481,10 +485,10 @@ var DynamicTable = new Class({
     },
 
     selectAll: function() {
-        this.selectedRows.empty();
+        this.deselectAll();
 
         var trs = this.tableBody.getElements('tr');
-        for (var i = 0; i < trs.length; i++) {
+        for (var i = 0; i < trs.length; ++i) {
             var tr = trs[i];
             this.selectedRows.push(tr.rowId);
             if (!tr.hasClass('selected'))
@@ -497,14 +501,36 @@ var DynamicTable = new Class({
     },
 
     selectRow: function(rowId) {
-        this.deselectAll();
         this.selectedRows.push(rowId);
+        this.setRowClass();
+        this.onSelectedRowChanged();
+    },
+
+    deselectRow: function(rowId) {
+        this.selectedRows.erase(rowId);
+        this.setRowClass();
+        this.onSelectedRowChanged();
+    },
+
+    selectRows: function(rowId1, rowId2) {
+        this.deselectAll();
+        if (rowId1 === rowId2) {
+            this.selectRow(rowId1);
+            return;
+        }
+
+        var select = false;
+        var that = this;
         this.tableBody.getElements('tr').each(function(tr) {
-            if (tr.rowId == rowId)
-                tr.addClass('selected');
-            else
-                tr.removeClass('selected');
+            if ((tr.rowId == rowId1) || (tr.rowId == rowId2)) {
+                select = !select;
+                that.selectedRows.push(tr.rowId);
+            }
+            else if (select) {
+                that.selectedRows.push(tr.rowId);
+            }
         });
+        this.setRowClass();
         this.onSelectedRowChanged();
     },
 
@@ -514,6 +540,16 @@ var DynamicTable = new Class({
         this.tableBody.getElements('tr').each(function(tr) {
             if (rowIds.indexOf(tr.rowId) > -1)
                 tr.addClass('selected');
+        });
+    },
+
+    setRowClass: function() {
+        var that = this;
+        this.tableBody.getElements('tr').each(function(tr) {
+            if (that.isRowSelected(tr.rowId))
+                tr.addClass('selected');
+            else
+                tr.removeClass('selected');
         });
     },
 
@@ -543,7 +579,7 @@ var DynamicTable = new Class({
 
         var rows = this.rows.getValues();
 
-        for (i = 0; i < rows.length; i++) {
+        for (i = 0; i < rows.length; ++i) {
             filteredRows.push(rows[i]);
             filteredRows[rows[i].rowId] = rows[i];
         }
@@ -561,7 +597,7 @@ var DynamicTable = new Class({
 
     getTrByRowId: function(rowId) {
         trs = this.tableBody.getElements('tr');
-        for (var i = 0; i < trs.length; i++)
+        for (var i = 0; i < trs.length; ++i)
             if (trs[i].rowId == rowId)
                 return trs[i];
         return null;
@@ -573,18 +609,18 @@ var DynamicTable = new Class({
 
         var rows = this.getFilteredAndSortedRows();
 
-        for (var i = 0; i < this.selectedRows.length; i++)
+        for (var i = 0; i < this.selectedRows.length; ++i)
             if (!(this.selectedRows[i] in rows)) {
                 this.selectedRows.splice(i, 1);
-                i--;
+                --i;
             }
 
         var trs = this.tableBody.getElements('tr');
 
-        for (var rowPos = 0; rowPos < rows.length; rowPos++) {
+        for (var rowPos = 0; rowPos < rows.length; ++rowPos) {
             var rowId = rows[rowPos]['rowId'];
             tr_found = false;
-            for (var j = rowPos; j < trs.length; j++)
+            for (var j = rowPos; j < trs.length; ++j)
                 if (trs[j]['rowId'] == rowId) {
                     tr_found = true;
                     if (rowPos == j)
@@ -604,63 +640,36 @@ var DynamicTable = new Class({
 
                 tr._this = this;
                 tr.addEvent('contextmenu', function(e) {
-                    if (!this._this.selectedRows.contains(this.rowId))
+                    if (!this._this.isRowSelected(this.rowId)) {
+                        this._this.deselectAll();
                         this._this.selectRow(this.rowId);
+                    }
                     return true;
                 });
                 tr.addEvent('click', function(e) {
                     e.stop();
-                    if (e.control) {
-                        // CTRL key was pressed
-                        if (this._this.selectedRows.contains(this.rowId)) {
-                            // remove it
-                            this._this.selectedRows.erase(this.rowId);
-                            // Remove selected style
-                            this.removeClass('selected');
-                        }
-                        else {
-                            this._this.selectedRows.push(this.rowId);
-                            // Add selected style
-                            this.addClass('selected');
-                        }
+                    if (e.control || e.meta) {
+                        // CTRL/CMD ⌘ key was pressed
+                        if (this._this.isRowSelected(this.rowId))
+                            this._this.deselectRow(this.rowId);
+                        else
+                            this._this.selectRow(this.rowId);
+                    }
+                    else if (e.shift && (this._this.selectedRows.length == 1)) {
+                        // Shift key was pressed
+                        this._this.selectRows(this._this.getSelectedRowId(), this.rowId);
                     }
                     else {
-                        if (e.shift && this._this.selectedRows.length == 1) {
-                            // Shift key was pressed
-                            var first_row_id = this._this.selectedRows[0];
-                            var last_row_id = this.rowId;
-                            this._this.selectedRows.empty();
-                            var trs = this._this.tableBody.getElements('tr');
-                            var select = false;
-                            for (var i = 0; i < trs.length; i++) {
-                                var tr = trs[i];
-
-                                if ((tr.rowId == first_row_id) || (tr.rowId == last_row_id)) {
-                                    this._this.selectedRows.push(tr.rowId);
-                                    tr.addClass('selected');
-                                    select = !select;
-                                }
-                                else {
-                                    if (select) {
-                                        this._this.selectedRows.push(tr.rowId);
-                                        tr.addClass('selected');
-                                    }
-                                    else
-                                        tr.removeClass('selected');
-                                }
-                            }
-                        }
-                        else {
-                            // Simple selection
-                            this._this.selectRow(this.rowId);
-                        }
+                        // Simple selection
+                        this._this.deselectAll();
+                        this._this.selectRow(this.rowId);
                     }
                     return false;
                 });
 
                 this.setupTr(tr);
 
-                for (var k = 0; k < this.columns.length; k++) {
+                for (var k = 0; k < this.columns.length; ++k) {
                     var td = new Element('td');
                     if ((this.columns[k].visible == '0') || this.columns[k].force_hide)
                         td.addClass('invisible');
@@ -700,7 +709,7 @@ var DynamicTable = new Class({
         data = row[fullUpdate ? 'full_data' : 'data'];
 
         tds = tr.getElements('td');
-        for (var i = 0; i < this.columns.length; i++) {
+        for (var i = 0; i < this.columns.length; ++i) {
             if (data.hasOwnProperty(this.columns[i].dataProperties[0]))
                 this.columns[i].updateTd(tds[i], row);
         }
@@ -719,7 +728,7 @@ var DynamicTable = new Class({
     },
 
     clear: function() {
-        this.selectedRows.empty();
+        this.deselectAll();
         this.rows.empty();
         var trs = this.tableBody.getElements('tr');
         while (trs.length > 0) {
@@ -743,35 +752,35 @@ var TorrentsTable = new Class({
     initColumns: function() {
         this.newColumn('priority', '', '#', 30, true);
         this.newColumn('state_icon', 'cursor: default', '', 22, true);
-        this.newColumn('name', '', 'QBT_TR(Name)QBT_TR[CONTEXT=TorrentModel]', 200, true);
-        this.newColumn('size', '', 'QBT_TR(Size)QBT_TR[CONTEXT=TorrentModel]', 100, true);
-        this.newColumn('total_size', '', 'QBT_TR(Total Size)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('progress', '', 'QBT_TR(Done)QBT_TR[CONTEXT=TorrentModel]', 85, true);
-        this.newColumn('status', '', 'QBT_TR(Status)QBT_TR[CONTEXT=TorrentModel]', 100, true);
-        this.newColumn('num_seeds', '', 'QBT_TR(Seeds)QBT_TR[CONTEXT=TorrentModel]', 100, true);
-        this.newColumn('num_leechs', '', 'QBT_TR(Peers)QBT_TR[CONTEXT=TorrentModel]', 100, true);
-        this.newColumn('dlspeed', '', 'QBT_TR(Down Speed)QBT_TR[CONTEXT=TorrentModel]', 100, true);
-        this.newColumn('upspeed', '', 'QBT_TR(Up Speed)QBT_TR[CONTEXT=TorrentModel]', 100, true);
-        this.newColumn('eta', '', 'QBT_TR(ETA)QBT_TR[CONTEXT=TorrentModel]', 100, true);
-        this.newColumn('ratio', '', 'QBT_TR(Ratio)QBT_TR[CONTEXT=TorrentModel]', 100, true);
-        this.newColumn('category', '', 'QBT_TR(Category)QBT_TR[CONTEXT=TorrentModel]', 100, true);
-        this.newColumn('tags', '', 'QBT_TR(Tags)QBT_TR[CONTEXT=TorrentModel]', 100, true);
-        this.newColumn('added_on', '', 'QBT_TR(Added On)QBT_TR[CONTEXT=TorrentModel]', 100, true);
-        this.newColumn('completion_on', '', 'QBT_TR(Completed On)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('tracker', '', 'QBT_TR(Tracker)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('dl_limit', '', 'QBT_TR(Down Limit)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('up_limit', '', 'QBT_TR(Up Limit)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('downloaded', '', 'QBT_TR(Downloaded)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('uploaded', '', 'QBT_TR(Uploaded)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('downloaded_session', '', 'QBT_TR(Session Download)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('uploaded_session', '', 'QBT_TR(Session Upload)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('amount_left', '', 'QBT_TR(Remaining)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('time_active', '', 'QBT_TR(Time Active)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('save_path', '', 'QBT_TR(Save path)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('completed', '', 'QBT_TR(Completed)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('max_ratio', '', 'QBT_TR(Ratio Limit)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('seen_complete', '', 'QBT_TR(Last Seen Complete)QBT_TR[CONTEXT=TorrentModel]', 100, false);
-        this.newColumn('last_activity', '', 'QBT_TR(Last Activity)QBT_TR[CONTEXT=TorrentModel]', 100, false);
+        this.newColumn('name', '', 'QBT_TR(Name)QBT_TR[CONTEXT=TransferListModel]', 200, true);
+        this.newColumn('size', '', 'QBT_TR(Size)QBT_TR[CONTEXT=TransferListModel]', 100, true);
+        this.newColumn('total_size', '', 'QBT_TR(Total Size)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('progress', '', 'QBT_TR(Done)QBT_TR[CONTEXT=TransferListModel]', 85, true);
+        this.newColumn('status', '', 'QBT_TR(Status)QBT_TR[CONTEXT=TransferListModel]', 100, true);
+        this.newColumn('num_seeds', '', 'QBT_TR(Seeds)QBT_TR[CONTEXT=TransferListModel]', 100, true);
+        this.newColumn('num_leechs', '', 'QBT_TR(Peers)QBT_TR[CONTEXT=TransferListModel]', 100, true);
+        this.newColumn('dlspeed', '', 'QBT_TR(Down Speed)QBT_TR[CONTEXT=TransferListModel]', 100, true);
+        this.newColumn('upspeed', '', 'QBT_TR(Up Speed)QBT_TR[CONTEXT=TransferListModel]', 100, true);
+        this.newColumn('eta', '', 'QBT_TR(ETA)QBT_TR[CONTEXT=TransferListModel]', 100, true);
+        this.newColumn('ratio', '', 'QBT_TR(Ratio)QBT_TR[CONTEXT=TransferListModel]', 100, true);
+        this.newColumn('category', '', 'QBT_TR(Category)QBT_TR[CONTEXT=TransferListModel]', 100, true);
+        this.newColumn('tags', '', 'QBT_TR(Tags)QBT_TR[CONTEXT=TransferListModel]', 100, true);
+        this.newColumn('added_on', '', 'QBT_TR(Added On)QBT_TR[CONTEXT=TransferListModel]', 100, true);
+        this.newColumn('completion_on', '', 'QBT_TR(Completed On)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('tracker', '', 'QBT_TR(Tracker)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('dl_limit', '', 'QBT_TR(Down Limit)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('up_limit', '', 'QBT_TR(Up Limit)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('downloaded', '', 'QBT_TR(Downloaded)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('uploaded', '', 'QBT_TR(Uploaded)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('downloaded_session', '', 'QBT_TR(Session Download)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('uploaded_session', '', 'QBT_TR(Session Upload)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('amount_left', '', 'QBT_TR(Remaining)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('time_active', '', 'QBT_TR(Time Active)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('save_path', '', 'QBT_TR(Save path)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('completed', '', 'QBT_TR(Completed)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('max_ratio', '', 'QBT_TR(Ratio Limit)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('seen_complete', '', 'QBT_TR(Last Seen Complete)QBT_TR[CONTEXT=TransferListModel]', 100, false);
+        this.newColumn('last_activity', '', 'QBT_TR(Last Activity)QBT_TR[CONTEXT=TransferListModel]', 100, false);
 
         this.columns['state_icon'].onclick = '';
         this.columns['state_icon'].dataProperties[0] = 'state';
@@ -966,7 +975,7 @@ var TorrentsTable = new Class({
             var pos = this.getColumnPos(columnName);
             var trs = this.tableBody.getElements('tr');
             ProgressColumnWidth = -1;
-            for (var i = 0; i < trs.length; i++) {
+            for (var i = 0; i < trs.length; ++i) {
                 var td = trs[i].getElements('td')[pos];
                 if (ProgressColumnWidth < 0)
                     ProgressColumnWidth = td.offsetWidth;
@@ -1158,8 +1167,8 @@ var TorrentsTable = new Class({
         var cnt = 0;
         var rows = this.rows.getValues();
 
-        for (i = 0; i < rows.length; i++)
-            if (this.applyFilter(rows[i], filterName, categoryHash)) cnt++;
+        for (i = 0; i < rows.length; ++i)
+            if (this.applyFilter(rows[i], filterName, categoryHash)) ++cnt;
         return cnt;
     },
 
@@ -1167,7 +1176,7 @@ var TorrentsTable = new Class({
         var rowsHashes = [];
         var rows = this.rows.getValues();
 
-        for (i = 0; i < rows.length; i++)
+        for (i = 0; i < rows.length; ++i)
             if (this.applyFilter(rows[i], filterName, categoryHash))
                 rowsHashes.push(rows[i]['rowId']);
 
@@ -1179,7 +1188,7 @@ var TorrentsTable = new Class({
 
         var rows = this.rows.getValues();
 
-        for (i = 0; i < rows.length; i++)
+        for (i = 0; i < rows.length; ++i)
             if (this.applyFilter(rows[i], selected_filter, selected_category)) {
                 filteredRows.push(rows[i]);
                 filteredRows[rows[i].rowId] = rows[i];
@@ -1199,6 +1208,7 @@ var TorrentsTable = new Class({
     setupTr: function(tr) {
         tr.addEvent('dblclick', function(e) {
             e.stop();
+            this._this.deselectAll();
             this._this.selectRow(this.rowId);
             var row = this._this.rows.get(this.rowId);
             var state = row['full_data'].state;
@@ -1285,7 +1295,7 @@ var TorrentPeersTable = new Class({
             var a = ip1.split(".");
             var b = ip2.split(".");
 
-            for (var i = 0; i < 4; i++) {
+            for (var i = 0; i < 4; ++i) {
                 if (a[i] != b[i])
                     return a[i] - b[i];
             }

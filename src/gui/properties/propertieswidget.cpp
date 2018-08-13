@@ -29,9 +29,7 @@
 #include "propertieswidget.h"
 
 #include <QAction>
-#include <QBitArray>
 #include <QDebug>
-#include <QFileDialog>
 #include <QHeaderView>
 #include <QListWidgetItem>
 #include <QMenu>
@@ -39,7 +37,6 @@
 #include <QStackedWidget>
 #include <QThread>
 #include <QTimer>
-#include <QVBoxLayout>
 
 #include "base/bittorrent/session.h"
 #include "base/preferences.h"
@@ -52,15 +49,15 @@
 #include "guiiconprovider.h"
 #include "lineedit.h"
 #include "mainwindow.h"
-#include "messageboxraised.h"
 #include "peerlistwidget.h"
 #include "pieceavailabilitybar.h"
 #include "proplistdelegate.h"
 #include "proptabbar.h"
+#include "raisedmessagebox.h"
 #include "speedwidget.h"
 #include "torrentcontentfiltermodel.h"
 #include "torrentcontentmodel.h"
-#include "trackerlist.h"
+#include "trackerlistwidget.h"
 #include "transferlistwidget.h"
 #include "utils.h"
 
@@ -132,17 +129,17 @@ PropertiesWidget::PropertiesWidget(QWidget *parent, MainWindow *mainWindow, Tran
     m_piecesAvailability->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
     // Tracker list
-    m_trackerList = new TrackerList(this);
+    m_trackerList = new TrackerListWidget(this);
     m_ui->trackerUpButton->setIcon(GuiIconProvider::instance()->getIcon("go-up"));
     m_ui->trackerUpButton->setIconSize(Utils::Gui::smallIconSize());
     m_ui->trackerDownButton->setIcon(GuiIconProvider::instance()->getIcon("go-down"));
     m_ui->trackerDownButton->setIconSize(Utils::Gui::smallIconSize());
-    connect(m_ui->trackerUpButton, &QPushButton::clicked, m_trackerList, &TrackerList::moveSelectionUp);
-    connect(m_ui->trackerDownButton, &QPushButton::clicked, m_trackerList, &TrackerList::moveSelectionDown);
-    m_ui->horizontalLayout_trackers->insertWidget(0, m_trackerList);
+    connect(m_ui->trackerUpButton, &QPushButton::clicked, m_trackerList, &TrackerListWidget::moveSelectionUp);
+    connect(m_ui->trackerDownButton, &QPushButton::clicked, m_trackerList, &TrackerListWidget::moveSelectionDown);
+    m_ui->hBoxLayoutTrackers->insertWidget(0, m_trackerList);
     // Peers list
     m_peerList = new PeerListWidget(this);
-    m_ui->peerpage_layout->addWidget(m_peerList);
+    m_ui->vBoxLayoutPeerPage->addWidget(m_peerList);
     // Speed widget
     m_speedWidget = new SpeedWidget(this);
     m_ui->speedLayout->addWidget(m_speedWidget);
@@ -276,7 +273,7 @@ BitTorrent::TorrentHandle *PropertiesWidget::getCurrentTorrent() const
     return m_torrent;
 }
 
-TrackerList *PropertiesWidget::getTrackerList() const
+TrackerListWidget *PropertiesWidget::getTrackerList() const
 {
     return m_trackerList;
 }
@@ -357,17 +354,17 @@ void PropertiesWidget::readSettings()
 {
     const Preferences *const pref = Preferences::instance();
     // Restore splitter sizes
-    QStringList sizesStr = pref->getPropSplitterSizes().split(",");
+    QStringList sizesStr = pref->getPropSplitterSizes().split(',');
     if (sizesStr.size() == 2) {
         m_slideSizes << sizesStr.first().toInt();
         m_slideSizes << sizesStr.last().toInt();
         QSplitter *hSplitter = static_cast<QSplitter *>(parentWidget());
         hSplitter->setSizes(m_slideSizes);
     }
-    const int current_tab = pref->getPropCurTab();
+    const int currentTab = pref->getPropCurTab();
     const bool visible = pref->getPropVisible();
     m_ui->filesList->header()->restoreState(pref->getPropFileListState());
-    m_tabBar->setCurrentIndex(current_tab);
+    m_tabBar->setCurrentIndex(currentTab);
     if (!visible)
         setVisibility(false);
 }
@@ -477,7 +474,7 @@ void PropertiesWidget::loadDynamicData()
 
                 // Progress
                 qreal progress = m_torrent->progress() * 100.;
-                m_ui->labelProgressVal->setText(Utils::String::fromDouble(progress, 1) + "%");
+                m_ui->labelProgressVal->setText(Utils::String::fromDouble(progress, 1) + '%');
                 m_downloadedPieces->setProgress(m_torrent->pieces(), m_torrent->downloadingPieces());
             }
             else {
@@ -561,7 +558,7 @@ void PropertiesWidget::openFolder(const QModelIndex &index, bool containingFolde
         if (pathItems.isEmpty())
             return;
         const QDir saveDir(m_torrent->savePath(true));
-        const QString relativePath = pathItems.join("/");
+        const QString relativePath = pathItems.join('/');
         absolutePath = Utils::Fs::expandPath(saveDir.absoluteFilePath(relativePath));
     }
     else {
@@ -604,7 +601,7 @@ void PropertiesWidget::displayFilesListMenu(const QPoint &)
     QMenu subMenu;
     if (!m_torrent->isSeed()) {
         subMenu.setTitle(tr("Priority"));
-        subMenu.addAction(m_ui->actionNot_downloaded);
+        subMenu.addAction(m_ui->actionNotDownloaded);
         subMenu.addAction(m_ui->actionNormal);
         subMenu.addAction(m_ui->actionHigh);
         subMenu.addAction(m_ui->actionMaximum);
@@ -632,7 +629,7 @@ void PropertiesWidget::displayFilesListMenu(const QPoint &)
             prio = prio::HIGH;
         else if (act == m_ui->actionMaximum)
             prio = prio::MAXIMUM;
-        else if (act == m_ui->actionNot_downloaded)
+        else if (act == m_ui->actionNotDownloaded)
             prio = prio::IGNORED;
 
         qDebug("Setting files priority");
@@ -693,7 +690,7 @@ void PropertiesWidget::renameSelectedFile()
     if (!ok) return;
 
     if (newName.isEmpty() || !Utils::Fs::isValidFileSystemName(newName)) {
-        MessageBoxRaised::warning(this, tr("Rename error"),
+        RaisedMessageBox::warning(this, tr("Rename error"),
                                   tr("The name is empty or contains forbidden characters, please choose a different one."),
                                   QMessageBox::Ok);
         return;
@@ -722,7 +719,7 @@ void PropertiesWidget::renameSelectedFile()
         for (int i = 0; i < m_torrent->filesCount(); ++i) {
             if (i == fileIndex) continue;
             if (Utils::Fs::sameFileNames(m_torrent->filePath(i), newFilePath)) {
-                MessageBoxRaised::warning(this, tr("Rename error"),
+                RaisedMessageBox::warning(this, tr("Rename error"),
                                           tr("This name is already in use in this folder. Please use a different name."),
                                           QMessageBox::Ok);
                 return;
@@ -743,18 +740,18 @@ void PropertiesWidget::renameSelectedFile()
             pathItems.prepend(parent.data().toString());
             parent = m_propListModel->parent(parent);
         }
-        const QString oldPath = pathItems.join("/");
+        const QString oldPath = pathItems.join('/');
         pathItems.removeLast();
         pathItems << newName;
-        QString newPath = pathItems.join("/");
+        QString newPath = pathItems.join('/');
         if (Utils::Fs::sameFileNames(oldPath, newPath)) {
             qDebug("Name did not change");
             return;
         }
-        if (!newPath.endsWith("/")) newPath += "/";
+        if (!newPath.endsWith('/')) newPath += '/';
         // Check for overwriting
         for (int i = 0; i < m_torrent->filesCount(); ++i) {
-            const QString &currentName = m_torrent->filePath(i);
+            const QString currentName = m_torrent->filePath(i);
 #if defined(Q_OS_UNIX) || defined(Q_WS_QWS)
             if (currentName.startsWith(newPath, Qt::CaseSensitive)) {
 #else
@@ -785,9 +782,9 @@ void PropertiesWidget::renameSelectedFile()
         // Rename folder in torrent files model too
         m_propListModel->setData(modelIndex, newName);
         // Remove old folder
-        const QDir oldFolder(m_torrent->savePath(true) + "/" + oldPath);
+        const QDir oldFolder(m_torrent->savePath(true) + '/' + oldPath);
         int timeout = 10;
-        while (!QDir().rmpath(oldFolder.absolutePath()) && timeout > 0) {
+        while (!QDir().rmpath(oldFolder.absolutePath()) && (timeout > 0)) {
             // FIXME: We should not sleep here (freezes the UI for 1 second)
             QThread::msleep(100);
             --timeout;
@@ -807,19 +804,19 @@ void PropertiesWidget::askWebSeed()
 {
     bool ok;
     // Ask user for a new url seed
-    const QString url_seed = AutoExpandableDialog::getText(this, tr("New URL seed", "New HTTP source"),
+    const QString urlSeed = AutoExpandableDialog::getText(this, tr("New URL seed", "New HTTP source"),
                                                            tr("New URL seed:"), QLineEdit::Normal,
                                                            QLatin1String("http://www."), &ok);
     if (!ok) return;
-    qDebug("Adding %s web seed", qUtf8Printable(url_seed));
-    if (!m_ui->listWebSeeds->findItems(url_seed, Qt::MatchFixedString).empty()) {
+    qDebug("Adding %s web seed", qUtf8Printable(urlSeed));
+    if (!m_ui->listWebSeeds->findItems(urlSeed, Qt::MatchFixedString).empty()) {
         QMessageBox::warning(this, "qBittorrent",
                              tr("This URL seed is already in the list."),
                              QMessageBox::Ok);
         return;
     }
     if (m_torrent)
-        m_torrent->addUrlSeeds(QList<QUrl>() << url_seed);
+        m_torrent->addUrlSeeds(QList<QUrl>() << urlSeed);
     // Refresh the seeds list
     loadUrlSeeds();
 }
@@ -847,7 +844,7 @@ void PropertiesWidget::copySelectedWebSeedsToClipboard() const
     foreach (QListWidgetItem *item, selectedItems)
         urlsToCopy << item->text();
 
-    QApplication::clipboard()->setText(urlsToCopy.join("\n"));
+    QApplication::clipboard()->setText(urlsToCopy.join('\n'));
 }
 
 void PropertiesWidget::editWebSeed()

@@ -30,7 +30,6 @@
 #define CATEGORYFILTERMODEL_H
 
 #include <QAbstractItemModel>
-#include <QHash>
 #include <QModelIndex>
 
 namespace BitTorrent
@@ -40,7 +39,7 @@ namespace BitTorrent
 
 class CategoryModelItem;
 
-class CategoryFilterModel: public QAbstractItemModel
+class CategoryFilterModel : public QAbstractItemModel
 {
     Q_OBJECT
 

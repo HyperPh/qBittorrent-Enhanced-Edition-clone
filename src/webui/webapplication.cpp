@@ -43,7 +43,6 @@
 #include <QMimeDatabase>
 #include <QMimeType>
 #include <QRegExp>
-#include <QTimer>
 #include <QUrl>
 
 #include "base/global.h"
@@ -54,7 +53,6 @@
 #include "base/utils/bytearray.h"
 #include "base/utils/fs.h"
 #include "base/utils/misc.h"
-#include "base/utils/net.h"
 #include "base/utils/random.h"
 #include "base/utils/string.h"
 #include "api/apierror.h"
@@ -73,7 +71,6 @@ const QString PATH_PREFIX_THEME {QStringLiteral("/theme/")};
 const QString WWW_FOLDER {QStringLiteral(":/www")};
 const QString PUBLIC_FOLDER {QStringLiteral("/public")};
 const QString PRIVATE_FOLDER {QStringLiteral("/private")};
-const QString MAX_AGE_MONTH {QStringLiteral("public, max-age=2592000")};
 
 namespace
 {
@@ -97,8 +94,8 @@ namespace
 
     void translateDocument(const QString &locale, QString &data)
     {
-        const QRegExp regex("QBT_TR\\((([^\\)]|\\)(?!QBT_TR))+)\\)QBT_TR(\\[CONTEXT=([a-zA-Z_][a-zA-Z0-9_]*)\\])");
-        const QRegExp mnemonic("\\(?&([a-zA-Z]?\\))?");
+        const QRegularExpression regex("QBT_TR\\((([^\\)]|\\)(?!QBT_TR))+)\\)QBT_TR(\\[CONTEXT=([a-zA-Z_][a-zA-Z0-9_]*)\\])");
+        const QRegularExpression mnemonic("\\(?&([a-zA-Z]?\\))?");
 
         const bool isTranslationNeeded = !locale.startsWith("en")
             || locale.startsWith("en_AU") || locale.startsWith("en_GB");
@@ -106,23 +103,24 @@ namespace
         int i = 0;
         bool found = true;
         while (i < data.size() && found) {
-            i = regex.indexIn(data, i);
+            QRegularExpressionMatch regexMatch;
+            i = data.indexOf(regex, i, &regexMatch);
             if (i >= 0) {
-                const QString word = regex.cap(1);
-                const QString context = regex.cap(4);
+                const QString word = regexMatch.captured(1);
+                const QString context = regexMatch.captured(4);
 
                 QString translation = isTranslationNeeded
                     ? qApp->translate(context.toUtf8().constData(), word.toUtf8().constData(), nullptr, 1)
                     : word;
 
                 // Remove keyboard shortcuts
-                translation.replace(mnemonic, "");
+                translation.remove(mnemonic);
 
                 // Use HTML code for quotes to prevent issues with JS
                 translation.replace('\'', "&#39;");
                 translation.replace('\"', "&#34;");
 
-                data.replace(i, regex.matchedLength(), translation);
+                data.replace(i, regexMatch.capturedLength(), translation);
                 i += translation.length();
             }
             else {
@@ -139,6 +137,22 @@ namespace
         if (!hostHeader.contains(QLatin1String("://")))
             return QUrl(QLatin1String("http://") + hostHeader);
         return hostHeader;
+    }
+
+    QString getCachingInterval(QString contentType)
+    {
+        contentType = contentType.toLower();
+
+        if (contentType.startsWith(QLatin1String("image/")))
+            return QLatin1String("private, max-age=604800");  // 1 week
+
+        if ((contentType == Http::CONTENT_TYPE_CSS)
+            || (contentType == Http::CONTENT_TYPE_JS)) {
+            // short interval in case of program update
+            return QLatin1String("private, max-age=43200");  // 12 hrs
+        }
+
+        return QLatin1String("no-store");
     }
 }
 
@@ -175,14 +189,12 @@ void WebApplication::sendWebUIFile()
         if (request().path.startsWith(PATH_PREFIX_IMAGES)) {
             const QString imageFilename {request().path.mid(PATH_PREFIX_IMAGES.size())};
             sendFile(QLatin1String(":/icons/") + imageFilename);
-            header(Http::HEADER_CACHE_CONTROL, MAX_AGE_MONTH);
             return;
         }
 
         if (request().path.startsWith(PATH_PREFIX_THEME)) {
             const QString iconId {request().path.mid(PATH_PREFIX_THEME.size())};
             sendFile(IconProvider::instance()->getIconPath(iconId));
-            header(Http::HEADER_CACHE_CONTROL, MAX_AGE_MONTH);
             return;
         }
     }
@@ -413,9 +425,6 @@ void WebApplication::configure()
 {
     const auto pref = Preferences::instance();
 
-    m_domainList = pref->getServerDomains().split(';', QString::SkipEmptyParts);
-    std::for_each(m_domainList.begin(), m_domainList.end(), [](QString &entry) { entry = entry.trimmed(); });
-
     const QString rootFolder = Utils::Fs::expandPathAbs(
                 !pref->isAltWebUiEnabled() ? WWW_FOLDER : pref->getWebUiRootFolder());
     if (rootFolder != m_rootFolder) {
@@ -428,6 +437,17 @@ void WebApplication::configure()
         m_currentLocale = newLocale;
         m_translatedFiles.clear();
     }
+
+    m_isLocalAuthEnabled = pref->isWebUiLocalAuthEnabled();
+    m_isAuthSubnetWhitelistEnabled = pref->isWebUiAuthSubnetWhitelistEnabled();
+    m_authSubnetWhitelist = pref->getWebUiAuthSubnetWhitelist();
+
+    m_domainList = pref->getServerDomains().split(';', QString::SkipEmptyParts);
+    std::for_each(m_domainList.begin(), m_domainList.end(), [](QString &entry) { entry = entry.trimmed(); });
+
+    m_isClickjackingProtectionEnabled = pref->isWebUiClickjackingProtectionEnabled();
+    m_isCSRFProtectionEnabled = pref->isWebUiCSRFProtectionEnabled();
+    m_isHttpsEnabled = pref->isWebUiHttpsEnabled();
 }
 
 void WebApplication::registerAPIController(const QString &scope, APIController *controller)
@@ -450,7 +470,9 @@ void WebApplication::sendFile(const QString &path)
     // find translated file in cache
     auto it = m_translatedFiles.constFind(path);
     if ((it != m_translatedFiles.constEnd()) && (lastModified <= (*it).lastModified)) {
-        print((*it).data, QMimeDatabase().mimeTypeForFileNameAndData(path, (*it).data).name());
+        const QString mimeName {QMimeDatabase().mimeTypeForFileNameAndData(path, (*it).data).name()};
+        print((*it).data, mimeName);
+        header(Http::HEADER_CACHE_CONTROL, getCachingInterval(mimeName));
         return;
     }
 
@@ -469,8 +491,8 @@ void WebApplication::sendFile(const QString &path)
     QByteArray data {file.readAll()};
     file.close();
 
-    const QMimeType type {QMimeDatabase().mimeTypeForFileNameAndData(path, data)};
-    const bool isTranslatable {type.inherits(QLatin1String("text/plain"))};
+    const QMimeType mimeType {QMimeDatabase().mimeTypeForFileNameAndData(path, data)};
+    const bool isTranslatable {mimeType.inherits(QLatin1String("text/plain"))};
 
     // Translate the file
     if (isTranslatable) {
@@ -481,7 +503,8 @@ void WebApplication::sendFile(const QString &path)
         m_translatedFiles[path] = {data, lastModified}; // caching translated file
     }
 
-    print(data, type.name());
+    print(data, mimeType.name());
+    header(Http::HEADER_CACHE_CONTROL, getCachingInterval(mimeType.name()));
 }
 
 Http::Response WebApplication::processRequest(const Http::Request &request, const Http::Environment &env)
@@ -512,9 +535,11 @@ Http::Response WebApplication::processRequest(const Http::Request &request, cons
     clear();
 
     try {
-        // block cross-site requests
-        if (isCrossSiteRequest(m_request) || !validateHostHeader(m_domainList))
+        // block suspicious requests
+        if ((m_isCSRFProtectionEnabled && isCrossSiteRequest(m_request))
+            || !validateHostHeader(m_domainList)) {
             throw UnauthorizedHTTPError();
+        }
 
         sessionInitialize();
         doProcessRequest();
@@ -525,11 +550,19 @@ Http::Response WebApplication::processRequest(const Http::Request &request, cons
             print(error.message(), Http::CONTENT_TYPE_TXT);
     }
 
-    // avoid clickjacking attacks
-    header(Http::HEADER_X_FRAME_OPTIONS, "SAMEORIGIN");
     header(Http::HEADER_X_XSS_PROTECTION, "1; mode=block");
     header(Http::HEADER_X_CONTENT_TYPE_OPTIONS, "nosniff");
-    header(Http::HEADER_CONTENT_SECURITY_POLICY, "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; object-src 'none';");
+
+    QString csp = QLatin1String("default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; object-src 'none'; form-action 'self';");
+    if (m_isClickjackingProtectionEnabled) {
+        header(Http::HEADER_X_FRAME_OPTIONS, "SAMEORIGIN");
+        csp += QLatin1String(" frame-ancestors 'self';");
+    }
+    if (m_isHttpsEnabled) {
+        csp += QLatin1String(" upgrade-insecure-requests;");
+    }
+
+    header(Http::HEADER_CONTENT_SECURITY_POLICY, csp);
 
     return response();
 }
@@ -589,11 +622,9 @@ QString WebApplication::generateSid() const
 
 bool WebApplication::isAuthNeeded()
 {
-    qDebug("Checking auth rules against client address %s", qPrintable(m_env.clientAddress.toString()));
-    const Preferences *pref = Preferences::instance();
-    if (!pref->isWebUiLocalAuthEnabled() && Utils::Net::isLoopbackAddress(m_env.clientAddress))
+    if (!m_isLocalAuthEnabled && Utils::Net::isLoopbackAddress(m_env.clientAddress))
         return false;
-    if (pref->isWebUiAuthSubnetWhitelistEnabled() && Utils::Net::isIPInRange(m_env.clientAddress, pref->getWebUiAuthSubnetWhitelist()))
+    if (m_isAuthSubnetWhitelistEnabled && Utils::Net::isIPInRange(m_env.clientAddress, m_authSubnetWhitelist))
         return false;
     return true;
 }

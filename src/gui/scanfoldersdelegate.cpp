@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2015  sledgehammer999
+ * Copyright (C) 2015  sledgehammer999 <hammered999@gmail.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,21 +24,17 @@
  * modify file(s), you may extend this exception to your version of the file(s),
  * but you are not obligated to do so. If you do not wish to do so, delete this
  * exception statement from your version.
- *
- * Contact : hammered999@gmail.com
  */
 
-#include <QDebug>
-#include <QPainter>
-#include <QComboBox>
-#include <QFileDialog>
-#include <QTreeView>
-#include <QItemSelectionModel>
-
-#include "base/scanfoldersmodel.h"
-#include "base/bittorrent/session.h"
 #include "scanfoldersdelegate.h"
 
+#include <QComboBox>
+#include <QDebug>
+#include <QFileDialog>
+#include <QTreeView>
+
+#include "base/bittorrent/session.h"
+#include "base/scanfoldersmodel.h"
 
 ScanFoldersDelegate::ScanFoldersDelegate(QObject *parent, QTreeView *foldersView)
     : QItemDelegate(parent)
@@ -60,7 +56,7 @@ QWidget *ScanFoldersDelegate::createEditor(QWidget *parent, const QStyleOptionVi
 {
     if (index.column() != ScanFoldersModel::DOWNLOAD) return 0;
 
-    QComboBox* editor = new QComboBox(parent);
+    QComboBox *editor = new QComboBox(parent);
 
     editor->setFocusPolicy(Qt::StrongFocus);
     editor->addItem(ScanFoldersModel::pathTypeDisplayName(ScanFoldersModel::DOWNLOAD_IN_WATCH_FOLDER));

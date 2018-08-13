@@ -25,7 +25,7 @@ var trackersDynTable = new Class({
 
     updateRow: function(tr, row) {
         var tds = tr.getElements('td');
-        for (var i = 0; i < row.length; i++) {
+        for (var i = 0; i < row.length; ++i) {
             tds[i].set('html', row[i]);
         }
         return true;
@@ -41,7 +41,7 @@ var trackersDynTable = new Class({
         //this.removeRow(id);
         var tr = new Element('tr');
         this.rows.set(url, tr);
-        for (var i = 0; i < row.length; i++) {
+        for (var i = 0; i < row.length; ++i) {
             var td = new Element('td');
             td.set('html', row[i]);
             td.injectInside(tr);
@@ -116,7 +116,7 @@ $('addTrackersPlus').addEvent('click', function addTrackerDlg() {
     if (current_hash.length === 0) return;
     new MochaUI.Window({
         id: 'trackersPage',
-        title: "QBT_TR(Trackers addition dialog)QBT_TR[CONTEXT=TrackersAdditionDlg]",
+        title: "QBT_TR(Trackers addition dialog)QBT_TR[CONTEXT=TrackersAdditionDialog]",
         loadMethod: 'iframe',
         contentURL: 'addtrackers.html?hash=' + current_hash,
         scrollbars: true,

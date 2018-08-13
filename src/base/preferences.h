@@ -1,6 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2014  sledgehammer999 <sledgehammer999@qbittorrent.org>
+ * Copyright (C) 2014  sledgehammer999 <hammered999@gmail.com>
  * Copyright (C) 2006  Christophe Dumez <chris@qbittorrent.org>
  *
  * This program is free software; you can redistribute it and/or
@@ -123,8 +123,10 @@ public:
     void setStartMinimized(bool b);
     bool isSplashScreenDisabled() const;
     void setSplashScreenDisabled(bool b);
-    bool preventFromSuspend() const;
-    void setPreventFromSuspend(bool b);
+    bool preventFromSuspendWhenDownloading() const;
+    void setPreventFromSuspendWhenDownloading(bool b);
+    bool preventFromSuspendWhenSeeding() const;
+    void setPreventFromSuspendWhenSeeding(bool b);
 #ifdef Q_OS_WIN
     bool WinStartup() const;
     void setWinStartup(bool b);
@@ -192,7 +194,13 @@ public:
     QString getWebUiUsername() const;
     void setWebUiUsername(const QString &username);
     QString getWebUiPassword() const;
-    void setWebUiPassword(const QString &new_password);
+    void setWebUiPassword(const QString &newPassword);
+
+    // WebUI security
+    bool isWebUiClickjackingProtectionEnabled() const;
+    void setWebUiClickjackingProtectionEnabled(bool enabled);
+    bool isWebUiCSRFProtectionEnabled() const;
+    void setWebUiCSRFProtectionEnabled(bool enabled);
 
     // HTTPS
     bool isWebUiHttpsEnabled() const;
@@ -280,10 +288,14 @@ public:
 #ifndef Q_OS_MAC
     bool systrayIntegration() const;
     void setSystrayIntegration(bool enabled);
+    bool minimizeToTrayNotified() const;
+    void setMinimizeToTrayNotified(bool b);
     bool minimizeToTray() const;
     void setMinimizeToTray(bool b);
     bool closeToTray() const;
     void setCloseToTray(bool b);
+    bool closeToTrayNotified() const;
+    void setCloseToTrayNotified(bool b);
     TrayIcon::Style trayIconStyle() const;
     void setTrayIconStyle(TrayIcon::Style style);
 #endif
@@ -348,6 +360,8 @@ public:
     void setTransSelFilter(const int &index);
     QByteArray getTransHeaderState() const;
     void setTransHeaderState(const QByteArray &state);
+    bool getRegexAsFilteringPattern() const;
+    void setRegexAsFilteringPattern(bool checked);
     int getToolbarTextPosition() const;
     void setToolbarTextPosition(const int position);
 

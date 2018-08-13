@@ -34,12 +34,9 @@
 
 #include <QCryptographicHash>
 #include <QDebug>
-#include <QHostAddress>
 #include <QHostInfo>
-#include <QNetworkInterface>
 #include <QStringList>
 #include <QTextCodec>
-#include <QTextStream>
 #ifndef QT_NO_OPENSSL
 #include <QSslSocket>
 #else
@@ -67,7 +64,7 @@ namespace
         // ascii characters 0x36 ("6") and 0x5c ("\") are selected because they have large
         // Hamming distance (http://en.wikipedia.org/wiki/Hamming_distance)
 
-        for (int i = 0; i < key.length(); i++) {
+        for (int i = 0; i < key.length(); ++i) {
             innerPadding[i] = innerPadding[i] ^ key.at(i); // XOR operation between every byte in key and innerpadding, of key length
             outerPadding[i] = outerPadding[i] ^ key.at(i); // XOR operation between every byte in key and outerpadding, of key length
         }
@@ -302,7 +299,7 @@ QByteArray Smtp::encodeMimeHeader(const QString &key, const QString &value, QTex
             if (firstWord)
                 line += word;
             else
-                line += " " + word;
+                line += ' ' + word;
             firstWord = false;
         }
     }
@@ -426,7 +423,7 @@ void Smtp::authenticate()
         // Skip authentication
         logError("The SMTP server does not seem to support any of the authentications modes "
                  "we support [CRAM-MD5|PLAIN|LOGIN], skipping authentication, "
-                 "knowing it is likely to fail... Server Auth Modes: " + auth.join("|"));
+                 "knowing it is likely to fail... Server Auth Modes: " + auth.join('|'));
         m_state = Authenticated;
         // At this point the server will not send any response
         // So fill the buffer with a fake one to pass the tests
@@ -506,7 +503,7 @@ void Smtp::authLogin()
 void Smtp::logError(const QString &msg)
 {
     qDebug() << "Email Notification Error:" << msg;
-    Logger::instance()->addMessage(tr("Email Notification Error:") + " " + msg, Log::CRITICAL);
+    Logger::instance()->addMessage(tr("Email Notification Error:") + ' ' + msg, Log::CRITICAL);
 }
 
 QString Smtp::getCurrentDateTime() const
@@ -532,7 +529,7 @@ QString Smtp::getCurrentDateTime() const
     std::snprintf(buf, sizeof(buf), "%+05d", timeOffset);
     QString timeOffsetStr = buf;
 
-    QString ret = weekDayStr + ", " + dayStr + " " + monthStr + " " + yearStr + " " + timeStr + " " + timeOffsetStr;
+    QString ret = weekDayStr + ", " + dayStr + ' ' + monthStr + ' ' + yearStr + ' ' + timeStr + ' ' + timeOffsetStr;
     return ret;
 }
 
