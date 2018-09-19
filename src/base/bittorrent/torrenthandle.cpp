@@ -504,11 +504,8 @@ bool TorrentHandle::needSaveResumeData() const
     return m_nativeHandle.need_save_resume_data();
 }
 
-void TorrentHandle::saveResumeData(bool updateStatus)
+void TorrentHandle::saveResumeData()
 {
-    if (updateStatus) // to update queue_position, see discussion in PR #6154
-        this->updateStatus();
-
     m_nativeHandle.save_resume_data();
 }
 
@@ -1213,12 +1210,8 @@ void TorrentHandle::setName(const QString &name)
 bool TorrentHandle::setCategory(const QString &category)
 {
     if (m_category != category) {
-        if (!category.isEmpty()) {
-            if (!Session::isValidCategoryName(category)) return false;
-            if (!m_session->categories().contains(category))
-                if (!m_session->addCategory(category))
-                    return false;
-        }
+        if (!category.isEmpty() && !m_session->categories().contains(category))
+            return false;
 
         QString oldCategory = m_category;
         m_category = category;
@@ -1350,6 +1343,12 @@ void TorrentHandle::pause()
 
     m_nativeHandle.auto_managed(false);
     m_nativeHandle.pause();
+
+    // Libtorrent doesn't emit a torrent_paused_alert when the
+    // torrent is queued (no I/O)
+    // We test on the cached m_nativeStatus
+    if (isQueued())
+        m_session->handleTorrentPaused(this);
 }
 
 void TorrentHandle::resume(bool forced)
@@ -1647,7 +1646,7 @@ void TorrentHandle::handleSaveResumeDataAlert(const libtorrent::save_resume_data
     resumeData["qBt-name"] = m_name.toStdString();
     resumeData["qBt-seedStatus"] = m_hasSeedStatus;
     resumeData["qBt-tempPathDisabled"] = m_tempPathDisabled;
-    resumeData["qBt-queuePosition"] = queuePosition();
+    resumeData["qBt-queuePosition"] = (nativeHandle().queue_position() + 1); // qBt starts queue at 1
     resumeData["qBt-hasRootFolder"] = m_hasRootFolder;
 
     m_session->handleTorrentResumeDataReady(this, resumeData);
@@ -1665,15 +1664,11 @@ void TorrentHandle::handleSaveResumeDataFailedAlert(const libtorrent::save_resum
 
 void TorrentHandle::handleFastResumeRejectedAlert(const libtorrent::fastresume_rejected_alert *p)
 {
-    qDebug("/!\\ Fast resume failed for %s, reason: %s", qUtf8Printable(name()), p->message().c_str());
-
-    updateStatus();
     if (p->error.value() == libt::errors::mismatching_file_size) {
         // Mismatching file size (files were probably moved)
-        LogMsg(tr("File sizes mismatch for torrent '%1', pausing it.").arg(name()), Log::CRITICAL);
+        pause();
         m_hasMissingFiles = true;
-        if (!isPaused())
-            pause();
+        LogMsg(tr("File sizes mismatch for torrent '%1', pausing it.").arg(name()), Log::CRITICAL);
     }
     else {
         LogMsg(tr("Fast resume data was rejected for torrent '%1'. Reason: %2. Checking again...")

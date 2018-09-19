@@ -133,7 +133,7 @@ namespace
     const QString KEY_NOTIFICATIONS_TORRENTADDED = NOTIFICATIONS_SETTINGS_KEY("TorrentAdded");
 
     // Misc
-    const QString KEY_DOWNLOAD_TRACKER_FAVICON = NOTIFICATIONS_SETTINGS_KEY("DownloadTrackerFavicon");
+    const QString KEY_DOWNLOAD_TRACKER_FAVICON = QStringLiteral(SETTINGS_KEY("DownloadTrackerFavicon"));
 
     // just a shortcut
     inline SettingsStorage *settings()
@@ -711,10 +711,10 @@ void MainWindow::showFilterContextMenu(const QPoint &)
     menu->addSeparator();
     QAction *useRegexAct = new QAction(tr("Use regular expressions"), menu);
     useRegexAct->setCheckable(true);
-    useRegexAct->setChecked(pref->getRegexAsFilteringPattern());
+    useRegexAct->setChecked(pref->getRegexAsFilteringPatternForTransferList());
     menu->addAction(useRegexAct);
 
-    connect(useRegexAct, &QAction::toggled, pref, &Preferences::setRegexAsFilteringPattern);
+    connect(useRegexAct, &QAction::toggled, pref, &Preferences::setRegexAsFilteringPatternForTransferList);
     connect(useRegexAct, &QAction::toggled, this, [this]() { m_transferListWidget->applyNameFilter(m_searchFilter->text()); });
 
     menu->exec(QCursor::pos());
@@ -1037,7 +1037,7 @@ void MainWindow::on_actionCloseWindow_triggered()
 QWidget *MainWindow::currentTabWidget() const
 {
     if (isMinimized() || !isVisible())
-        return 0;
+        return nullptr;
     if (m_tabs->currentIndex() == 0)
         return m_transferListWidget;
     return m_tabs->currentWidget();
@@ -1438,7 +1438,7 @@ void MainWindow::loadPreferences(bool configureSession)
 #else
     const bool newSystrayIntegration = pref->systrayIntegration();
     m_ui->actionLock->setVisible(newSystrayIntegration);
-    if (newSystrayIntegration != (m_systrayIcon != 0)) {
+    if (newSystrayIntegration != (m_systrayIcon != nullptr)) {
         if (newSystrayIntegration) {
             // create the trayicon
             if (!QSystemTrayIcon::isSystemTrayAvailable()) {

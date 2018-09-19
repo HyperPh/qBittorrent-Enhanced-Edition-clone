@@ -105,7 +105,7 @@ using NETIO_STATUS = LONG;
 
 static const char PEER_ID[] = "qB";
 static const char RESUME_FOLDER[] = "BT_backup";
-static const char USER_AGENT[] = "qBittorrent/4.1.2";
+static const char USER_AGENT[] = "qBittorrent/4.1.3";
 
 namespace libt = libtorrent;
 using namespace BitTorrent;
@@ -1381,11 +1381,7 @@ void Session::configure(libtorrent::settings_pack &settingsPack)
     settingsPack.set_int(libt::settings_pack::active_tracker_limit, -1);
     settingsPack.set_int(libt::settings_pack::active_dht_limit, -1);
     settingsPack.set_int(libt::settings_pack::active_lsd_limit, -1);
-    // 1 active torrent force 2 connections. If you have more active torrents * 2 than connection limit,
-    // connection limit will get extended. Multiply max connections or active torrents by 10 for queue.
-    // Ignore -1 values because we don't want to set a max int message queue
-    settingsPack.set_int(libt::settings_pack::alert_queue_size, std::max(1000,
-        10 * std::max(maxActiveTorrents() * 2, maxConnections())));
+    settingsPack.set_int(libt::settings_pack::alert_queue_size, std::numeric_limits<int>::max() / 2);
 
     // Outgoing ports
     settingsPack.set_int(libt::settings_pack::outgoing_port, outgoingPortsMin());
@@ -1660,11 +1656,7 @@ void Session::configure(libtorrent::session_settings &sessionSettings)
     sessionSettings.active_tracker_limit = -1;
     sessionSettings.active_dht_limit = -1;
     sessionSettings.active_lsd_limit = -1;
-    // 1 active torrent force 2 connections. If you have more active torrents * 2 than connection limit,
-    // connection limit will get extended. Multiply max connections or active torrents by 10 for queue.
-    // Ignore -1 values because we don't want to set a max int message queue
-    sessionSettings.alert_queue_size = std::max(1000,
-        10 * std::max(maxActiveTorrents() * 2, maxConnections()));
+    sessionSettings.alert_queue_size = std::numeric_limits<int>::max() / 2;
 
     // Outgoing ports
     sessionSettings.outgoing_ports = std::make_pair(outgoingPortsMin(), outgoingPortsMax());
@@ -2147,6 +2139,8 @@ void Session::increaseTorrentsPriority(const QStringList &hashes)
         torrentQueuePositionUp(torrent->nativeHandle());
         torrentQueue.pop();
     }
+
+    handleTorrentsPrioritiesChanged();
 }
 
 void Session::decreaseTorrentsPriority(const QStringList &hashes)
@@ -2171,6 +2165,8 @@ void Session::decreaseTorrentsPriority(const QStringList &hashes)
 
     for (auto i = m_loadedMetadata.cbegin(); i != m_loadedMetadata.cend(); ++i)
         torrentQueuePositionBottom(m_nativeSession->find_torrent(i.key()));
+
+    handleTorrentsPrioritiesChanged();
 }
 
 void Session::topTorrentsPriority(const QStringList &hashes)
@@ -2192,6 +2188,8 @@ void Session::topTorrentsPriority(const QStringList &hashes)
         torrentQueuePositionTop(torrent->nativeHandle());
         torrentQueue.pop();
     }
+
+    handleTorrentsPrioritiesChanged();
 }
 
 void Session::bottomTorrentsPriority(const QStringList &hashes)
@@ -2216,6 +2214,8 @@ void Session::bottomTorrentsPriority(const QStringList &hashes)
 
     for (auto i = m_loadedMetadata.cbegin(); i != m_loadedMetadata.cend(); ++i)
         torrentQueuePositionBottom(m_nativeSession->find_torrent(i.key()));
+
+    handleTorrentsPrioritiesChanged();
 }
 
 QHash<InfoHash, TorrentHandle *> Session::torrents() const
@@ -2509,7 +2509,7 @@ void Session::generateResumeData(bool final)
         if (!final && !torrent->needSaveResumeData()) continue;
         if (torrent->hasMissingFiles() || torrent->hasError()) continue;
 
-        saveTorrentResumeData(torrent, final);
+        saveTorrentResumeData(torrent);
     }
 }
 
@@ -3735,10 +3735,22 @@ void Session::handleTorrentShareLimitChanged(TorrentHandle *const torrent)
     updateSeedingLimitTimer();
 }
 
-void Session::saveTorrentResumeData(TorrentHandle *const torrent, bool finalSave)
+void Session::handleTorrentsPrioritiesChanged()
+{
+    // Save fastresume for the torrents that changed queue position
+    for (TorrentHandle *const torrent : torrents()) {
+        if (!torrent->isSeed()) {
+            // cached vs actual queue position, qBt starts queue at 1
+            if (torrent->queuePosition() != (torrent->nativeHandle().queue_position() + 1))
+                saveTorrentResumeData(torrent);
+        }
+    }
+}
+
+void Session::saveTorrentResumeData(TorrentHandle *const torrent)
 {
     qDebug("Saving fastresume data for %s", qUtf8Printable(torrent->name()));
-    torrent->saveResumeData(finalSave);
+    torrent->saveResumeData();
     ++m_numResumeData;
 }
 
@@ -3857,8 +3869,11 @@ void Session::handleTorrentChecked(TorrentHandle *const torrent)
 
 void Session::handleTorrentFinished(TorrentHandle *const torrent)
 {
-    if (!torrent->hasError() && !torrent->hasMissingFiles())
+    if (!torrent->hasError() && !torrent->hasMissingFiles()) {
         saveTorrentResumeData(torrent);
+        if (isQueueingSystemEnabled())
+            handleTorrentsPrioritiesChanged();
+    }
     emit torrentFinished(torrent);
 
     qDebug("Checking if the torrent contains torrent files to download");
