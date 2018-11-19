@@ -59,14 +59,6 @@ public:
 
     Http::Response processRequest(const Http::Request &request, const Http::Environment &env) final;
 
-    bool m_isActive = false;
-    QQueue<QString> bannedIPs;
-    QQueue<int64_t> UnbanTime;
-    QTimer *m_UnbanTimer;
-
-public slots:
-    void processUnbanRequest();
-
 protected:
     virtual void doProcessRequest() = 0;
 
