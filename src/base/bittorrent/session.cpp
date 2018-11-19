@@ -1515,7 +1515,7 @@ void Session::autoBanBadClient()
                 QString pid = peer.pid().left(8);
                 QString country = peer.country();
 
-                QRegExp IDFilter("-(XL|SD|XF|QD|BN)(\\d+)-");
+                QRegExp IDFilter("-(XL|SD|XF|QD|BN|DL)(\\d+)-");
                 QRegExp UAFilter("\\d+.\\d+.\\d+.\\d+");
                 if (IDFilter.exactMatch(pid) || UAFilter.exactMatch(client)) {
                     qDebug("Auto Banning bad Peer %s...", ip.toLocal8Bit().data());

@@ -361,7 +361,6 @@ namespace BitTorrent
         QTimer *m_banTimer;
         QTimer *m_updateTimer;
 
-        void autoBanBadClient();
         void banIP(const QString &ip);
         bool checkAccessFlags(const QString &ip);
         void eraseIPFilter();
@@ -442,6 +441,7 @@ namespace BitTorrent
 
     public slots:
         void processUnbanRequest();
+        void autoBanBadClient();
 
     private slots:
         void configureDeferred();
