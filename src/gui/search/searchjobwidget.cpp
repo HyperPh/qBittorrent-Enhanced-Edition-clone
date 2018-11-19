@@ -129,7 +129,6 @@ SearchJobWidget::SearchJobWidget(SearchHandler *searchHandler, QWidget *parent)
     updateFilter();
 
     m_lineEditSearchResultsFilter = new LineEdit(this);
-    m_lineEditSearchResultsFilter->setFixedWidth(Utils::Gui::scaledSize(this, 170));
     m_lineEditSearchResultsFilter->setPlaceholderText(tr("Filter search results..."));
     m_lineEditSearchResultsFilter->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(m_lineEditSearchResultsFilter, &QWidget::customContextMenuRequested, this, &SearchJobWidget::showFilterContextMenu);
@@ -315,6 +314,8 @@ void SearchJobWidget::updateFilter()
 void SearchJobWidget::fillFilterComboBoxes()
 {
     using Utils::Misc::SizeUnit;
+    using Utils::Misc::unitString;
+
     QStringList unitStrings;
     unitStrings.append(unitString(SizeUnit::Byte));
     unitStrings.append(unitString(SizeUnit::KibiByte));

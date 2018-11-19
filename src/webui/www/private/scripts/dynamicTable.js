@@ -370,7 +370,7 @@ var DynamicTable = new Class({
                 columnsOrder.push(v);
         }.bind(this));
 
-        for (i = 0; i < this.columns.length; ++i)
+        for (var i = 0; i < this.columns.length; ++i)
             if (!columnsOrder.contains(this.columns[i].name))
                 columnsOrder.push(this.columns[i].name);
 
@@ -379,8 +379,8 @@ var DynamicTable = new Class({
     },
 
     saveColumnsOrder: function() {
-        val = '';
-        for (i = 0; i < this.columns.length; ++i) {
+        var val = '';
+        for (var i = 0; i < this.columns.length; ++i) {
             if (i > 0)
                 val += ',';
             val += this.columns[i].name;
@@ -397,7 +397,7 @@ var DynamicTable = new Class({
         var ths = header.getElements('th');
 
         for (var i = 0; i < ths.length; ++i) {
-            th = ths[i];
+            var th = ths[i];
             th._this = this;
             th.setAttribute('title', this.columns[i].caption);
             th.innerHTML = this.columns[i].caption;
@@ -579,14 +579,14 @@ var DynamicTable = new Class({
 
         var rows = this.rows.getValues();
 
-        for (i = 0; i < rows.length; ++i) {
+        for (var i = 0; i < rows.length; ++i) {
             filteredRows.push(rows[i]);
             filteredRows[rows[i].rowId] = rows[i];
         }
 
         filteredRows.sort(function(row1, row2) {
             var column = this.columns[this.sortedColumn];
-            res = column.compareRows(row1, row2);
+            var res = column.compareRows(row1, row2);
             if (this.reverseSort == '0')
                 return res;
             else
@@ -596,7 +596,7 @@ var DynamicTable = new Class({
     },
 
     getTrByRowId: function(rowId) {
-        trs = this.tableBody.getElements('tr');
+        var trs = this.tableBody.getElements('tr');
         for (var i = 0; i < trs.length; ++i)
             if (trs[i].rowId == rowId)
                 return trs[i];
@@ -619,7 +619,7 @@ var DynamicTable = new Class({
 
         for (var rowPos = 0; rowPos < rows.length; ++rowPos) {
             var rowId = rows[rowPos]['rowId'];
-            tr_found = false;
+            var tr_found = false;
             for (var j = rowPos; j < trs.length; ++j)
                 if (trs[j]['rowId'] == rowId) {
                     tr_found = true;
@@ -706,9 +706,9 @@ var DynamicTable = new Class({
 
     updateRow: function(tr, fullUpdate) {
         var row = this.rows.get(tr.rowId);
-        data = row[fullUpdate ? 'full_data' : 'data'];
+        var data = row[fullUpdate ? 'full_data' : 'data'];
 
-        tds = tr.getElements('td');
+        var tds = tr.getElements('td');
         for (var i = 0; i < this.columns.length; ++i) {
             if (data.hasOwnProperty(this.columns[i].dataProperties[0]))
                 this.columns[i].updateTd(tds[i], row);
@@ -856,58 +856,58 @@ var TorrentsTable = new Class({
             var status;
             switch (state) {
                 case "downloading":
-                    status = "Downloading";
+                    status = "QBT_TR(Downloading)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "stalledDL":
-                    status = "Stalled";
+                    status = "QBT_TR(Stalled)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "metaDL":
-                    status = "Downloading metadata";
+                    status = "QBT_TR(Downloading metadata)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "forcedDL":
-                    status = "[F] Downloading";
+                    status = "QBT_TR([F] Downloading)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "allocating":
-                    status = "Allocating";
+                    status = "QBT_TR(Allocating)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "uploading":
                 case "stalledUP":
-                    status = "Seeding";
+                    status = "QBT_TR(Seeding)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "forcedUP":
-                    status = "[F] Seeding";
+                    status = "QBT_TR([F] Seeding)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "queuedDL":
                 case "queuedUP":
-                    status = "Queued";
+                    status = "QBT_TR(Queued)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "checkingDL":
                 case "checkingUP":
-                    status = "Checking";
+                    status = "QBT_TR(Checking)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "queuedForChecking":
-                    status = "Queued for checking";
+                    status = "QBT_TR(Queued for checking)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "checkingResumeData":
-                    status = "Checking resume data";
+                    status = "QBT_TR(Checking resume data)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "pausedDL":
-                    status = "Paused";
+                    status = "QBT_TR(Paused)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "pausedUP":
-                    status = "Completed";
+                    status = "QBT_TR(Completed)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "moving":
-                    status = "Moving";
+                    status = "QBT_TR(Moving)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "missingFiles":
-                    status = "Missing Files";
+                    status = "QBT_TR(Missing Files)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 case "error":
-                    status = "Errored";
+                    status = "QBT_TR(Errored)QBT_TR[CONTEXT=TransferListDelegate]";
                     break;
                 default:
-                    status = "Unknown";
+                    status = "QBT_TR(Unknown)QBT_TR[CONTEXT=HttpServer]";
             }
 
             td.set('html', status);
@@ -1027,7 +1027,7 @@ var TorrentsTable = new Class({
         // eta
         this.columns['eta'].updateTd = function(td, row) {
             var eta = this.getRowValue(row);
-            td.set('html', friendlyDuration(eta, true));
+            td.set('html', friendlyDuration(eta));
         };
 
         // ratio
@@ -1098,7 +1098,7 @@ var TorrentsTable = new Class({
             if (val < 1)
                 td.set('html', '∞');
             else
-                td.set('html', 'QBT_TR(%1 ago)QBT_TR[CONTEXT=TransferListDelegate]'.replace('%1', friendlyDuration((new Date()) / 1000 - val, true)));
+                td.set('html', 'QBT_TR(%1 ago)QBT_TR[CONTEXT=TransferListDelegate]'.replace('%1', friendlyDuration((new Date()) / 1000 - val)));
         };
 
         // time active
@@ -1167,7 +1167,7 @@ var TorrentsTable = new Class({
         var cnt = 0;
         var rows = this.rows.getValues();
 
-        for (i = 0; i < rows.length; ++i)
+        for (var i = 0; i < rows.length; ++i)
             if (this.applyFilter(rows[i], filterName, categoryHash)) ++cnt;
         return cnt;
     },
@@ -1176,7 +1176,7 @@ var TorrentsTable = new Class({
         var rowsHashes = [];
         var rows = this.rows.getValues();
 
-        for (i = 0; i < rows.length; ++i)
+        for (var i = 0; i < rows.length; ++i)
             if (this.applyFilter(rows[i], filterName, categoryHash))
                 rowsHashes.push(rows[i]['rowId']);
 
@@ -1188,7 +1188,7 @@ var TorrentsTable = new Class({
 
         var rows = this.rows.getValues();
 
-        for (i = 0; i < rows.length; ++i)
+        for (var i = 0; i < rows.length; ++i)
             if (this.applyFilter(rows[i], selected_filter, selected_category)) {
                 filteredRows.push(rows[i]);
                 filteredRows[rows[i].rowId] = rows[i];
@@ -1196,7 +1196,7 @@ var TorrentsTable = new Class({
 
         filteredRows.sort(function(row1, row2) {
             var column = this.columns[this.sortedColumn];
-            res = column.compareRows(row1, row2);
+            var res = column.compareRows(row1, row2);
             if (this.reverseSort == '0')
                 return res;
             else

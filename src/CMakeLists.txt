@@ -1,5 +1,13 @@
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_CXX_STANDARD "11")
+
+# If C++14 is available, use it as libtorent ABI depends on 11/14 version
+if (cxx_std_14 IN_LIST CMAKE_CXX_COMPILE_FEATURES)
+    message(STATUS "Building in C++14 mode")
+    set(CMAKE_CXX_STANDARD "14")
+else()
+    message(STATUS "Building in C++11 mode")
+    set(CMAKE_CXX_STANDARD "11")
+endif()
 
 include(MacroQbtCompilerSettings)
 qbt_set_compiler_options()
@@ -13,7 +21,7 @@ if (Boost_VERSION VERSION_LESS 106000)
     add_definitions(-DBOOST_NO_CXX11_RVALUE_REFERENCES)
 endif()
 
-find_package(Qt5 ${requiredQtVersion} REQUIRED COMPONENTS Core Network Xml)
+find_package(Qt5 ${requiredQtVersion} REQUIRED COMPONENTS Core Network Xml LinguistTools)
 find_package(Qt5Widgets ${requiredQtVersion})
 if (Qt5Widgets_FOUND)
     find_package(Qt5DBus ${requiredQtVersion})

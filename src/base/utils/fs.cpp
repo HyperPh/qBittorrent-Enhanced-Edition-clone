@@ -30,6 +30,10 @@
 
 #include <cstring>
 
+#if defined(Q_OS_WIN)
+#include <memory>
+#endif
+
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
@@ -301,9 +305,17 @@ bool Utils::Fs::isRegularFile(const QString &path)
     return (st.st_mode & S_IFMT) == S_IFREG;
 }
 
-#if !defined Q_OS_WIN && !defined Q_OS_HAIKU
+#if !defined Q_OS_HAIKU
 bool Utils::Fs::isNetworkFileSystem(const QString &path)
 {
+#if defined(Q_OS_WIN)
+    const std::wstring pathW {path.toStdWString()};
+    std::unique_ptr<wchar_t[]> volumePath {new wchar_t[path.length() + 1] {}};
+    if (!::GetVolumePathNameW(pathW.c_str(), volumePath.get(), (path.length() + 1)))
+        return false;
+
+    return (::GetDriveTypeW(volumePath.get()) == DRIVE_REMOTE);
+#elif defined(Q_OS_MAC) || defined(Q_OS_OPENBSD)
     QString file = path;
     if (!file.endsWith('/'))
         file += '/';
@@ -313,20 +325,32 @@ bool Utils::Fs::isNetworkFileSystem(const QString &path)
     if (statfs(file.toLocal8Bit().constData(), &buf) != 0)
         return false;
 
-#if defined(Q_OS_MAC) || defined(Q_OS_OPENBSD)
     // XXX: should we make sure HAVE_STRUCT_FSSTAT_F_FSTYPENAME is defined?
-    return ((strncmp(buf.f_fstypename, "nfs", sizeof(buf.f_fstypename)) == 0)
-        || (strncmp(buf.f_fstypename, "cifs", sizeof(buf.f_fstypename)) == 0)
+    return ((strncmp(buf.f_fstypename, "cifs", sizeof(buf.f_fstypename)) == 0)
+        || (strncmp(buf.f_fstypename, "nfs", sizeof(buf.f_fstypename)) == 0)
         || (strncmp(buf.f_fstypename, "smbfs", sizeof(buf.f_fstypename)) == 0));
 #else
-    // usually defined in /usr/include/linux/magic.h
-    const unsigned long CIFS_MAGIC_NUMBER = 0xFF534D42;
-    const unsigned long NFS_SUPER_MAGIC = 0x6969;
-    const unsigned long SMB_SUPER_MAGIC = 0x517B;
+    QString file = path;
+    if (!file.endsWith('/'))
+        file += '/';
+    file += '.';
 
-    return ((buf.f_type == CIFS_MAGIC_NUMBER)
-        || (buf.f_type == NFS_SUPER_MAGIC)
-        || (buf.f_type == SMB_SUPER_MAGIC));
+    struct statfs buf {};
+    if (statfs(file.toLocal8Bit().constData(), &buf) != 0)
+        return false;
+
+    // Magic number references:
+    // 1. /usr/include/linux/magic.h
+    // 2. https://github.com/coreutils/coreutils/blob/master/src/stat.c
+    switch (buf.f_type) {
+    case 0xFF534D42:  // CIFS_MAGIC_NUMBER
+    case 0x6969:  // NFS_SUPER_MAGIC
+    case 0x517B:  // SMB_SUPER_MAGIC
+    case 0xFE534D42:  // S_MAGIC_SMB2
+        return true;
+    default:
+        return false;
+    }
 #endif
 }
 #endif

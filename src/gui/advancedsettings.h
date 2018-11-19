@@ -65,7 +65,7 @@ private:
     QCheckBox checkBoxOsCache, checkBoxRecheckCompleted, checkBoxResolveCountries, checkBoxResolveHosts, checkBoxSuperSeeding,
               checkBoxProgramNotifications, checkBoxTorrentAddedNotifications, checkBoxTrackerFavicon, checkBoxTrackerStatus,
               checkBoxConfirmTorrentRecheck, checkBoxConfirmRemoveAllTags, checkBoxListenIPv6, checkBoxAnnounceAllTrackers, checkBoxAnnounceAllTiers,
-             checkBoxGuidedReadCache, checkBoxMultiConnectionsPerIp, checkBoxSuggestMode, checkBoxCoalesceRW, cb_auto_ban_unknown_peer, cb_show_tracker_auth_window;
+              checkBoxGuidedReadCache, checkBoxMultiConnectionsPerIp, checkBoxSuggestMode, checkBoxCoalesceRW, checkBoxSpeedWidgetEnabled, cb_auto_ban_unknown_peer, cb_show_tracker_auth_window;
     QComboBox comboBoxInterface, comboBoxInterfaceAddress, comboBoxUtpMixedMode, comboBoxChokingAlgorithm, comboBoxSeedChokingAlgorithm;
     QLineEdit lineEditAnnounceIP;
 

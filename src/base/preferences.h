@@ -259,7 +259,6 @@ public:
     bool recursiveDownloadDisabled() const;
     void disableRecursiveDownload(bool disable = true);
 #ifdef Q_OS_WIN
-    static QString getPythonPath();
     bool neverCheckFileAssoc() const;
     void setNeverCheckFileAssoc(bool check = true);
     static bool isTorrentFileAssocSet();
@@ -376,6 +375,8 @@ public:
     void setNetworkCookies(const QList<QNetworkCookie> &cookies);
 
     // SpeedWidget
+    bool isSpeedWidgetEnabled() const;
+    void setSpeedWidgetEnabled(bool enabled);
     int getSpeedWidgetPeriod() const;
     void setSpeedWidgetPeriod(const int period);
     bool getSpeedWidgetGraphEnable(int id) const;

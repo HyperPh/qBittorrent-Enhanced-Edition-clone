@@ -34,7 +34,6 @@
 #include <stdexcept>
 #include <vector>
 
-#include <QCoreApplication>
 #include <QDateTime>
 #include <QDebug>
 #include <QFile>
@@ -60,6 +59,7 @@
 #include "api/authcontroller.h"
 #include "api/logcontroller.h"
 #include "api/rsscontroller.h"
+#include "api/searchcontroller.h"
 #include "api/synccontroller.h"
 #include "api/torrentscontroller.h"
 #include "api/transfercontroller.h"
@@ -89,46 +89,6 @@ namespace
             ret.insert(name, value);
         }
         return ret;
-    }
-
-    void translateDocument(const QString &locale, QString &data)
-    {
-        const QRegularExpression regex("QBT_TR\\((([^\\)]|\\)(?!QBT_TR))+)\\)QBT_TR(\\[CONTEXT=([a-zA-Z_][a-zA-Z0-9_]*)\\])");
-        const QRegularExpression mnemonic("\\(?&([a-zA-Z]?\\))?");
-
-        const bool isTranslationNeeded = !locale.startsWith("en")
-            || locale.startsWith("en_AU") || locale.startsWith("en_GB");
-
-        int i = 0;
-        bool found = true;
-        while (i < data.size() && found) {
-            QRegularExpressionMatch regexMatch;
-            i = data.indexOf(regex, i, &regexMatch);
-            if (i >= 0) {
-                const QString word = regexMatch.captured(1);
-                const QString context = regexMatch.captured(4);
-
-                QString translation = isTranslationNeeded
-                    ? qApp->translate(context.toUtf8().constData(), word.toUtf8().constData(), nullptr, 1)
-                    : word;
-
-                // Remove keyboard shortcuts
-                translation.remove(mnemonic);
-
-                // Use HTML code for quotes to prevent issues with JS
-                translation.replace('\'', "&#39;");
-                translation.replace('\"', "&#34;");
-
-                data.replace(i, regexMatch.capturedLength(), translation);
-                i += translation.length();
-            }
-            else {
-                found = false; // no more translatable strings
-            }
-
-            data.replace(QLatin1String("${LANG}"), locale.left(2));
-            data.replace(QLatin1String("${VERSION}"), QBT_VERSION);
-        }
     }
 
     inline QUrl urlFromHostHeader(const QString &hostHeader)
@@ -162,6 +122,7 @@ WebApplication::WebApplication(QObject *parent)
     registerAPIController(QLatin1String("auth"), new AuthController(this, this));
     registerAPIController(QLatin1String("log"), new LogController(this, this));
     registerAPIController(QLatin1String("rss"), new RSSController(this, this));
+    registerAPIController(QLatin1String("search"), new SearchController(this, this));
     registerAPIController(QLatin1String("sync"), new SyncController(this, this));
     registerAPIController(QLatin1String("torrents"), new TorrentsController(this, this));
     registerAPIController(QLatin1String("transfer"), new TransferController(this, this));
@@ -232,6 +193,43 @@ void WebApplication::sendWebUIFile()
     }
 
     sendFile(localPath);
+}
+
+void WebApplication::translateDocument(QString &data)
+{
+    const QRegularExpression regex("QBT_TR\\((([^\\)]|\\)(?!QBT_TR))+)\\)QBT_TR\\[CONTEXT=([a-zA-Z_][a-zA-Z0-9_]*)\\]");
+
+    const bool isTranslationNeeded = !m_currentLocale.startsWith("en")
+            || m_currentLocale.startsWith("en_AU") || m_currentLocale.startsWith("en_GB")
+            || !m_translator.isEmpty();
+
+    int i = 0;
+    bool found = true;
+    while (i < data.size() && found) {
+        QRegularExpressionMatch regexMatch;
+        i = data.indexOf(regex, i, &regexMatch);
+        if (i >= 0) {
+            const QString word = regexMatch.captured(1);
+            const QString context = regexMatch.captured(3);
+
+            QString translation = isTranslationNeeded
+                    ? m_translator.translate(context.toUtf8().constData(), word.toUtf8().constData(), nullptr, 1)
+                    : word;
+
+            // Use HTML code for quotes to prevent issues with JS
+            translation.replace('\'', "&#39;");
+            translation.replace('\"', "&#34;");
+
+            data.replace(i, regexMatch.capturedLength(), translation);
+            i += translation.length();
+        }
+        else {
+            found = false; // no more translatable strings
+        }
+
+        data.replace(QLatin1String("${LANG}"), m_currentLocale.left(2));
+        data.replace(QLatin1String("${VERSION}"), QBT_VERSION);
+    }
 }
 
 WebSession *WebApplication::session()
@@ -416,19 +414,33 @@ void WebApplication::doProcessRequest()
 
 void WebApplication::configure()
 {
-    const auto pref = Preferences::instance();
+    const auto *pref = Preferences::instance();
 
+    const bool isAltUIUsed = pref->isAltWebUiEnabled();
     const QString rootFolder = Utils::Fs::expandPathAbs(
-                !pref->isAltWebUiEnabled() ? WWW_FOLDER : pref->getWebUiRootFolder());
-    if (rootFolder != m_rootFolder) {
-        m_translatedFiles.clear();
+                !isAltUIUsed ? WWW_FOLDER : pref->getWebUiRootFolder());
+    if ((isAltUIUsed != m_isAltUIUsed) || (rootFolder != m_rootFolder)) {
+        m_isAltUIUsed = isAltUIUsed;
         m_rootFolder = rootFolder;
+        m_translatedFiles.clear();
+        if (!m_isAltUIUsed)
+            LogMsg(tr("Using built-in Web UI."));
+        else
+            LogMsg(tr("Using custom Web UI. Location: \"%1\".").arg(m_rootFolder));
     }
 
     const QString newLocale = pref->getLocale();
     if (m_currentLocale != newLocale) {
         m_currentLocale = newLocale;
         m_translatedFiles.clear();
+        if (m_translator.load(m_rootFolder + QLatin1String("/translations/webui_") + m_currentLocale)) {
+            LogMsg(tr("Web UI translation for selected locale (%1) is successfully loaded.")
+                   .arg(m_currentLocale));
+        }
+        else {
+            LogMsg(tr("Couldn't load Web UI translation for selected locale (%1). Falling back to default (en).")
+                   .arg(m_currentLocale), Log::WARNING);
+        }
     }
 
     m_isLocalAuthEnabled = pref->isWebUiLocalAuthEnabled();
@@ -490,7 +502,7 @@ void WebApplication::sendFile(const QString &path)
     // Translate the file
     if (isTranslatable) {
         QString dataStr {data};
-        translateDocument(m_currentLocale, dataStr);
+        translateDocument(dataStr);
         data = dataStr.toUtf8();
 
         m_translatedFiles[path] = {data, lastModified}; // caching translated file

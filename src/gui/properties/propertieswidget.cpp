@@ -140,9 +140,6 @@ PropertiesWidget::PropertiesWidget(QWidget *parent, MainWindow *mainWindow, Tran
     // Peers list
     m_peerList = new PeerListWidget(this);
     m_ui->vBoxLayoutPeerPage->addWidget(m_peerList);
-    // Speed widget
-    m_speedWidget = new SpeedWidget(this);
-    m_ui->speedLayout->addWidget(m_speedWidget);
     // Tab bar
     m_tabBar = new PropTabBar();
     m_tabBar->setContentsMargins(0, 5, 0, 0);
@@ -164,6 +161,9 @@ PropertiesWidget::PropertiesWidget(QWidget *parent, MainWindow *mainWindow, Tran
     connect(m_deleteHotkeyWeb, &QShortcut::activated, this, &PropertiesWidget::deleteSelectedUrlSeeds);
     m_openHotkeyFile = new QShortcut(Qt::Key_Return, m_ui->filesList, nullptr, nullptr, Qt::WidgetShortcut);
     connect(m_openHotkeyFile, &QShortcut::activated, this, &PropertiesWidget::openSelectedFile);
+
+    configure();
+    connect(Preferences::instance(), &Preferences::changed, this, &PropertiesWidget::configure);
 }
 
 PropertiesWidget::~PropertiesWidget()
@@ -286,11 +286,6 @@ PeerListWidget *PropertiesWidget::getPeerList() const
 QTreeView *PropertiesWidget::getFilesList() const
 {
     return m_ui->filesList;
-}
-
-SpeedWidget *PropertiesWidget::getSpeedWidget() const
-{
-    return m_speedWidget;
 }
 
 void PropertiesWidget::updateSavePath(BitTorrent::TorrentHandle *const torrent)
@@ -445,13 +440,15 @@ void PropertiesWidget::loadDynamicData()
                 .arg(QString::number(m_torrent->leechsCount())
                     , QString::number(m_torrent->totalLeechersCount())));
 
+            const int dlDuration = m_torrent->activeTime() - m_torrent->finishedTime();
+            const QString dlAvg = Utils::Misc::friendlyUnit((m_torrent->totalDownload() / ((dlDuration == 0) ? -1 : dlDuration)), true);
             m_ui->labelDlSpeedVal->setText(tr("%1 (%2 avg.)", "%1 and %2 are speed rates, e.g. 200KiB/s (100KiB/s avg.)")
-                .arg(Utils::Misc::friendlyUnit(m_torrent->downloadPayloadRate(), true)
-                    , Utils::Misc::friendlyUnit(m_torrent->totalDownload() / (1 + m_torrent->activeTime() - m_torrent->finishedTime()), true)));
+                .arg(Utils::Misc::friendlyUnit(m_torrent->downloadPayloadRate(), true), dlAvg));
 
+            const int ulDuration = m_torrent->activeTime();
+            const QString ulAvg = Utils::Misc::friendlyUnit((m_torrent->totalUpload() / ((ulDuration == 0) ? -1 : ulDuration)), true);
             m_ui->labelUpSpeedVal->setText(tr("%1 (%2 avg.)", "%1 and %2 are speed rates, e.g. 200KiB/s (100KiB/s avg.)")
-                .arg(Utils::Misc::friendlyUnit(m_torrent->uploadPayloadRate(), true)
-                    , Utils::Misc::friendlyUnit(m_torrent->totalUpload() / (1 + m_torrent->activeTime()), true)));
+                .arg(Utils::Misc::friendlyUnit(m_torrent->uploadPayloadRate(), true), ulAvg));
 
             m_ui->labelLastSeenCompleteVal->setText(m_torrent->lastSeenComplete().isValid() ? m_torrent->lastSeenComplete().toString(Qt::DefaultLocaleShortDate) : tr("Never"));
 
@@ -798,6 +795,29 @@ void PropertiesWidget::openSelectedFile()
     if (selectedIndexes.size() != 1)
         return;
     openDoubleClickedFile(selectedIndexes.first());
+}
+
+void PropertiesWidget::configure()
+{
+    // Speed widget
+    if (Preferences::instance()->isSpeedWidgetEnabled()) {
+        if (!m_speedWidget || !qobject_cast<SpeedWidget *>(m_speedWidget)) {
+            m_ui->speedLayout->removeWidget(m_speedWidget);
+            delete m_speedWidget;
+            m_speedWidget = new SpeedWidget {this};
+            m_ui->speedLayout->addWidget(m_speedWidget);
+        }
+    }
+    else {
+        if (!m_speedWidget || !qobject_cast<QLabel *>(m_speedWidget)) {
+            m_ui->speedLayout->removeWidget(m_speedWidget);
+            delete m_speedWidget;
+            auto *label = new QLabel(tr("<center><b>Speed graphs are disabled</b><p>You may change this setting in Advanced Options </center>"), this);
+            label->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+            m_speedWidget = label;
+            m_ui->speedLayout->addWidget(m_speedWidget);
+        }
+    }
 }
 
 void PropertiesWidget::askWebSeed()

@@ -158,6 +158,7 @@ namespace BitTorrent
     class TorrentHandle : public QObject
     {
         Q_DISABLE_COPY(TorrentHandle)
+        Q_DECLARE_TR_FUNCTIONS(BitTorrent::TorrentHandle)
 
     public:
         static const qreal USE_GLOBAL_RATIO;
@@ -460,11 +461,19 @@ namespace BitTorrent
         bool m_hasMissingFiles;
         bool m_hasRootFolder;
         bool m_needsToSetFirstLastPiecePriority;
+        bool m_needsToStartForced;
 
-        bool m_pauseAfterRecheck;
         QHash<QString, TrackerInfo> m_trackerInfos;
 
-        bool m_started = false;
+        enum StartupState
+        {
+            NotStarted,
+            Starting,
+            Started
+        };
+
+        StartupState m_startupState = NotStarted;
+        bool m_unchecked = false;
     };
 }
 

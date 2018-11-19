@@ -306,10 +306,6 @@ OptionsDialog::OptionsDialog(QWidget *parent)
     connect(m_ui->spinPort, qSpinBoxValueChanged, this, &ThisType::enableApplyButton);
     connect(m_ui->checkRandomPort, &QAbstractButton::toggled, this, &ThisType::enableApplyButton);
     connect(m_ui->checkUPnP, &QAbstractButton::toggled, this, &ThisType::enableApplyButton);
-    connect(m_ui->checkUploadLimit, &QAbstractButton::toggled, this, &ThisType::enableApplyButton);
-    connect(m_ui->checkDownloadLimit, &QAbstractButton::toggled, this, &ThisType::enableApplyButton);
-    connect(m_ui->checkUploadLimitAlt, &QAbstractButton::toggled, this, &ThisType::enableApplyButton);
-    connect(m_ui->checkDownloadLimitAlt, &QAbstractButton::toggled, this, &ThisType::enableApplyButton);
     connect(m_ui->spinUploadLimit, qSpinBoxValueChanged, this, &ThisType::enableApplyButton);
     connect(m_ui->spinDownloadLimit, qSpinBoxValueChanged, this, &ThisType::enableApplyButton);
     connect(m_ui->spinUploadLimitAlt, qSpinBoxValueChanged, this, &ThisType::enableApplyButton);
@@ -408,6 +404,7 @@ OptionsDialog::OptionsDialog(QWidget *parent)
     connect(m_ui->checkRSSEnable, &QCheckBox::toggled, this, &OptionsDialog::enableApplyButton);
     connect(m_ui->checkRSSAutoDownloaderEnable, &QCheckBox::toggled, this, &OptionsDialog::enableApplyButton);
     connect(m_ui->textSmartEpisodeFilters, &QPlainTextEdit::textChanged, this, &OptionsDialog::enableApplyButton);
+    connect(m_ui->checkSmartFilterDownloadRepacks, &QCheckBox::toggled, this, &OptionsDialog::enableApplyButton);
     connect(m_ui->spinRSSRefreshInterval, qSpinBoxValueChanged, this, &OptionsDialog::enableApplyButton);
     connect(m_ui->spinRSSMaxArticlesPerFeed, qSpinBoxValueChanged, this, &OptionsDialog::enableApplyButton);
     connect(m_ui->btnEditRules, &QPushButton::clicked, this, [this]() { AutomatedRssDownloader(this).exec(); });
@@ -594,6 +591,7 @@ void OptionsDialog::saveOptions()
     RSS::Session::instance()->setProcessingEnabled(m_ui->checkRSSEnable->isChecked());
     RSS::AutoDownloader::instance()->setProcessingEnabled(m_ui->checkRSSAutoDownloaderEnable->isChecked());
     RSS::AutoDownloader::instance()->setSmartEpisodeFilters(m_ui->textSmartEpisodeFilters->toPlainText().split('\n', QString::SplitBehavior::SkipEmptyParts));
+    RSS::AutoDownloader::instance()->setDownloadRepacks(m_ui->checkSmartFilterDownloadRepacks->isChecked());
 
     auto session = BitTorrent::Session::instance();
 
@@ -642,15 +640,13 @@ void OptionsDialog::saveOptions()
     session->setPort(getPort());
     session->setUseRandomPort(m_ui->checkRandomPort->isChecked());
     Net::PortForwarder::instance()->setEnabled(isUPnPEnabled());
-    const QPair<int, int> downUpLimit = getGlobalBandwidthLimits();
-    session->setGlobalDownloadSpeedLimit(downUpLimit.first);
-    session->setGlobalUploadSpeedLimit(downUpLimit.second);
+    session->setGlobalDownloadSpeedLimit(m_ui->spinDownloadLimit->value() * 1024);
+    session->setGlobalUploadSpeedLimit(m_ui->spinUploadLimit->value() * 1024);
+    session->setAltGlobalDownloadSpeedLimit(m_ui->spinDownloadLimitAlt->value() * 1024);
+    session->setAltGlobalUploadSpeedLimit(m_ui->spinUploadLimitAlt->value() * 1024);
     session->setUTPRateLimited(m_ui->checkLimituTPConnections->isChecked());
     session->setIncludeOverheadInLimits(m_ui->checkLimitTransportOverhead->isChecked());
     session->setIgnoreLimitsOnLAN(!m_ui->checkLimitLocalPeerRate->isChecked());
-    const QPair<int, int> altDownUpLimit = getAltGlobalBandwidthLimits();
-    session->setAltGlobalDownloadSpeedLimit(altDownUpLimit.first);
-    session->setAltGlobalUploadSpeedLimit(altDownUpLimit.second);
     pref->setSchedulerStartTime(m_ui->timeEditScheduleFrom->time());
     pref->setSchedulerEndTime(m_ui->timeEditScheduleTo->time());
     pref->setSchedulerDays(static_cast<SchedulerDays>(m_ui->comboBoxScheduleDays->currentIndex()));
@@ -831,6 +827,7 @@ void OptionsDialog::loadOptions()
     m_ui->checkRSSEnable->setChecked(RSS::Session::instance()->isProcessingEnabled());
     m_ui->checkRSSAutoDownloaderEnable->setChecked(RSS::AutoDownloader::instance()->isProcessingEnabled());
     m_ui->textSmartEpisodeFilters->setPlainText(RSS::AutoDownloader::instance()->smartEpisodeFilters().join('\n'));
+    m_ui->checkSmartFilterDownloadRepacks->setChecked(RSS::AutoDownloader::instance()->downloadRepacks());
 
     m_ui->spinRSSRefreshInterval->setValue(RSS::Session::instance()->refreshInterval());
     m_ui->spinRSSMaxArticlesPerFeed->setValue(RSS::Session::instance()->maxArticlesPerFeed());
@@ -1009,55 +1006,10 @@ void OptionsDialog::loadOptions()
     // End Connection preferences
 
     // Speed preferences
-    intValue = session->globalDownloadSpeedLimit() / 1024;
-    if (intValue > 0) {
-        // Enabled
-        m_ui->checkDownloadLimit->setChecked(true);
-        m_ui->spinDownloadLimit->setEnabled(true);
-        m_ui->spinDownloadLimit->setValue(intValue);
-    }
-    else {
-        // Disabled
-        m_ui->checkDownloadLimit->setChecked(false);
-        m_ui->spinDownloadLimit->setEnabled(false);
-    }
-    intValue = session->globalUploadSpeedLimit() / 1024;
-    if (intValue > 0) {
-        // Enabled
-        m_ui->checkUploadLimit->setChecked(true);
-        m_ui->spinUploadLimit->setEnabled(true);
-        m_ui->spinUploadLimit->setValue(intValue);
-    }
-    else {
-        // Disabled
-        m_ui->checkUploadLimit->setChecked(false);
-        m_ui->spinUploadLimit->setEnabled(false);
-    }
-
-    intValue = session->altGlobalDownloadSpeedLimit() / 1024;
-    if (intValue > 0) {
-        // Enabled
-        m_ui->checkDownloadLimitAlt->setChecked(true);
-        m_ui->spinDownloadLimitAlt->setEnabled(true);
-        m_ui->spinDownloadLimitAlt->setValue(intValue);
-    }
-    else {
-        // Disabled
-        m_ui->checkDownloadLimitAlt->setChecked(false);
-        m_ui->spinDownloadLimitAlt->setEnabled(false);
-    }
-    intValue = session->altGlobalUploadSpeedLimit() / 1024;
-    if (intValue > 0) {
-        // Enabled
-        m_ui->checkUploadLimitAlt->setChecked(true);
-        m_ui->spinUploadLimitAlt->setEnabled(true);
-        m_ui->spinUploadLimitAlt->setValue(intValue);
-    }
-    else {
-        // Disabled
-        m_ui->checkUploadLimitAlt->setChecked(false);
-        m_ui->spinUploadLimitAlt->setEnabled(false);
-    }
+    m_ui->spinDownloadLimit->setValue(session->globalDownloadSpeedLimit() / 1024);
+    m_ui->spinUploadLimit->setValue(session->globalUploadSpeedLimit() / 1024);
+    m_ui->spinDownloadLimitAlt->setValue(session->altGlobalDownloadSpeedLimit() / 1024);
+    m_ui->spinUploadLimitAlt->setValue(session->altGlobalUploadSpeedLimit() / 1024);
 
     m_ui->checkLimituTPConnections->setChecked(session->isUTPRateLimited());
     m_ui->checkLimitTransportOverhead->setChecked(session->includeOverheadInLimits());
@@ -1197,30 +1149,6 @@ bool OptionsDialog::isLSDEnabled() const
 bool OptionsDialog::isUPnPEnabled() const
 {
     return m_ui->checkUPnP->isChecked();
-}
-
-// Return Download & Upload limits in kbps
-// [download,upload]
-QPair<int, int> OptionsDialog::getGlobalBandwidthLimits() const
-{
-    int DL = 0, UP = 0;
-    if (m_ui->checkDownloadLimit->isChecked())
-        DL = m_ui->spinDownloadLimit->value() * 1024;
-    if (m_ui->checkUploadLimit->isChecked())
-        UP = m_ui->spinUploadLimit->value() * 1024;
-    return qMakePair(DL, UP);
-}
-
-// Return alternate Download & Upload limits in kbps
-// [download,upload]
-QPair<int, int> OptionsDialog::getAltGlobalBandwidthLimits() const
-{
-    int DL = 0, UP = 0;
-    if (m_ui->checkDownloadLimitAlt->isChecked())
-        DL = m_ui->spinDownloadLimitAlt->value() * 1024;
-    if (m_ui->checkUploadLimitAlt->isChecked())
-        UP = m_ui->spinUploadLimitAlt->value() * 1024;
-    return qMakePair(DL, UP);
 }
 
 bool OptionsDialog::startMinimized() const
