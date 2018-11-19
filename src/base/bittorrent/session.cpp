@@ -397,7 +397,11 @@ Session::Session(QObject *parent)
                     | libt::alert::tracker_notification
                     | libt::alert::status_notification
                     | libt::alert::ip_block_notification
+#if LIBTORRENT_VERSION_NUM < 10110
                     | libt::alert::progress_notification
+#else
+                    | libt::alert::file_progress_notification
+#endif
                     | libt::alert::stats_notification;
 
 #if LIBTORRENT_VERSION_NUM < 10100
@@ -1994,7 +1998,7 @@ void Session::autoBanBadClient()
                 QString pid = peer.pid().left(8);
                 QString country = peer.country();
 
-                QRegExp IDFilter("-(XL|SD|XF|QD|BN)(\\d+)-");
+                QRegExp IDFilter("-(XL|SD|XF|QD|BN|DL)(\\d+)-");
                 QRegExp UAFilter("\\d+.\\d+.\\d+.\\d+");
                 if (IDFilter.exactMatch(pid) || UAFilter.exactMatch(client)) {
                     qDebug("Auto Banning bad Peer %s...", ip.toLocal8Bit().data());
@@ -2232,10 +2236,10 @@ TorrentStatusReport Session::torrentStatusReport() const
 bool Session::addTorrent(QString source, const AddTorrentParams &params)
 {
     MagnetUri magnetUri(source);
-    if (magnetUri.isValid()) {
+    if (magnetUri.isValid())
         return addTorrent_impl(params, magnetUri);
-    }
-    else if (Utils::Misc::isUrl(source)) {
+
+    if (Utils::Misc::isUrl(source)) {
         LogMsg(tr("Downloading '%1', please wait...", "e.g: Downloading 'xxx.torrent', please wait...").arg(source));
         // Launch downloader
         Net::DownloadHandler *handler =
@@ -2245,13 +2249,13 @@ bool Session::addTorrent(QString source, const AddTorrentParams &params)
         connect(handler, &Net::DownloadHandler::downloadFailed, this, &Session::handleDownloadFailed);
         connect(handler, &Net::DownloadHandler::redirectedToMagnet, this, &Session::handleRedirectedToMagnet);
         m_downloadedTorrents[handler->url()] = params;
+        return true;
     }
-    else {
-        TorrentFileGuard guard(source);
-        if (addTorrent_impl(params, MagnetUri(), TorrentInfo::loadFromFile(source))) {
-            guard.markAsAddedToSession();
-            return true;
-        }
+
+    TorrentFileGuard guard(source);
+    if (addTorrent_impl(params, MagnetUri(), TorrentInfo::loadFromFile(source))) {
+        guard.markAsAddedToSession();
+        return true;
     }
 
     return false;
@@ -2339,15 +2343,6 @@ bool Session::addTorrent_impl(CreateTorrentParams params, const MagnetUri &magne
         return false;
     }
 
-    if (params.restored && !fromMagnetUri) {
-        // Set torrent fast resume data
-        p.resume_data = {fastresumeData.constData(), fastresumeData.constData() + fastresumeData.size()};
-        p.flags |= libt::add_torrent_params::flag_use_resume_save_path;
-    }
-    else {
-        p.file_priorities = {params.filePriorities.begin(), params.filePriorities.end()};
-    }
-
     // We should not add torrent if it already
     // processed or adding to session
     if (m_addingTorrents.contains(hash) || m_loadedMetadata.contains(hash)) return false;
@@ -2380,6 +2375,23 @@ bool Session::addTorrent_impl(CreateTorrentParams params, const MagnetUri &magne
         p.flags |= libt::add_torrent_params::flag_seed_mode;
     else
         p.flags &= ~libt::add_torrent_params::flag_seed_mode;
+
+    if (!fromMagnetUri) {
+        if (params.restored) {
+            // Set torrent fast resume data
+            p.resume_data = {fastresumeData.constData(), fastresumeData.constData() + fastresumeData.size()};
+            p.flags |= libt::add_torrent_params::flag_use_resume_save_path;
+        }
+        else {
+            p.file_priorities = {params.filePriorities.begin(), params.filePriorities.end()};
+        }
+    }
+
+    if (params.restored && !params.paused) {
+        // Make sure the torrent will restored in "paused" state
+        // Then we will start it if needed
+        p.flags |= libt::add_torrent_params::flag_stop_when_ready;
+    }
 
     // Limits
     p.max_connections = maxConnectionsPerTorrent();
@@ -2797,7 +2809,7 @@ int Session::downloadSpeedLimit() const
             : globalDownloadSpeedLimit();
 }
 
-void Session::setDownloadSpeedLimit(int limit)
+void Session::setDownloadSpeedLimit(const int limit)
 {
     if (isAltGlobalSpeedLimitEnabled())
         setAltGlobalDownloadSpeedLimit(limit);
@@ -2812,7 +2824,7 @@ int Session::uploadSpeedLimit() const
             : globalUploadSpeedLimit();
 }
 
-void Session::setUploadSpeedLimit(int limit)
+void Session::setUploadSpeedLimit(const int limit)
 {
     if (isAltGlobalSpeedLimitEnabled())
         setAltGlobalUploadSpeedLimit(limit);
@@ -2825,7 +2837,7 @@ bool Session::isAltGlobalSpeedLimitEnabled() const
     return m_isAltGlobalSpeedLimitEnabled;
 }
 
-void Session::setAltGlobalSpeedLimitEnabled(bool enabled)
+void Session::setAltGlobalSpeedLimitEnabled(const bool enabled)
 {
     if (enabled == isAltGlobalSpeedLimitEnabled()) return;
 
@@ -4983,8 +4995,10 @@ namespace
         torrentParams.hasRootFolder = fast.dict_find_int_value("qBt-hasRootFolder");
 
         magnetUri = MagnetUri(QString::fromStdString(fast.dict_find_string_value("qBt-magnetUri")));
-        torrentParams.paused = fast.dict_find_int_value("qBt-paused");
-        torrentParams.forced = fast.dict_find_int_value("qBt-forced");
+        const bool isAutoManaged = fast.dict_find_int_value("auto_managed");
+        const bool isPaused = fast.dict_find_int_value("paused");
+        torrentParams.paused = fast.dict_find_int_value("qBt-paused", (isPaused && !isAutoManaged));
+        torrentParams.forced = fast.dict_find_int_value("qBt-forced", (!isPaused && !isAutoManaged));
         torrentParams.firstLastPiecePriority = fast.dict_find_int_value("qBt-firstLastPiecePriority");
         torrentParams.sequential = fast.dict_find_int_value("qBt-sequential");
 
