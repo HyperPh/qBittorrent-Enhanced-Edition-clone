@@ -172,15 +172,15 @@ private:
     bool setSslCertificate(const QByteArray &cert);
     bool schedTimesOk();
     bool webUIAuthenticationOk();
+    bool isAlternativeWebUIPathValid();
 
     QByteArray m_sslCert, m_sslKey;
 
     Ui::OptionsDialog *m_ui;
-    QButtonGroup choiceLanguage;
-    QAbstractButton *applyButton;
-    AdvancedSettings *advancedSettings;
-    QList<QString> addedScanDirs;
-    QList<QString> removedScanDirs;
+    QAbstractButton *m_applyButton;
+    AdvancedSettings *m_advancedSettings;
+    QList<QString> m_addedScanDirs;
+    QList<QString> m_removedScanDirs;
 };
 
 #endif // OPTIONSDIALOG_H

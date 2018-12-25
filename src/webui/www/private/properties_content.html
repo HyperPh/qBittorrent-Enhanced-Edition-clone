@@ -84,10 +84,14 @@
         <table class="dynamicTable" style="width: 100%">
             <thead>
                 <tr>
-                    <th style="width: 30%;">QBT_TR(URL)QBT_TR[CONTEXT=TrackerListWidget] <img src="images/qbt-theme/list-add.svg" id="addTrackersPlus" alt="Add Trackers" /></th>
+                    <th style="width: 5%;">QBT_TR(#)QBT_TR[CONTEXT=TrackerListWidget]</th>
+                    <th style="width: 30%;">QBT_TR(URL)QBT_TR[CONTEXT=TrackerListWidget]</th>
                     <th style="width: 10%;">QBT_TR(Status)QBT_TR[CONTEXT=TrackerListWidget]</th>
-                    <th style="width: 10%;">QBT_TR(Peers)QBT_TR[CONTEXT=TrackerListWidget]</th>
-                    <th style="width: 50%;">QBT_TR(Message)QBT_TR[CONTEXT=TrackerListWidget]</th>
+                    <th style="width: 5%;">QBT_TR(Peers)QBT_TR[CONTEXT=TrackerListWidget]</th>
+                    <th style="width: 5%;">QBT_TR(Seeds)QBT_TR[CONTEXT=TrackerListWidget]</th>
+                    <th style="width: 5%;">QBT_TR(Leeches)QBT_TR[CONTEXT=TrackerListWidget]</th>
+                    <th style="width: 5%;">QBT_TR(Downloaded)QBT_TR[CONTEXT=TrackerListWidget]</th>
+                    <th style="width: 35%;">QBT_TR(Message)QBT_TR[CONTEXT=TrackerListWidget]</th>
                 </tr>
             </thead>
             <tbody id="trackersTable"></tbody>
@@ -133,7 +137,7 @@
         <table class="dynamicTable" style="width: 100%">
             <thead>
                 <tr>
-                    <th style="width: 4.5em; border-right: 0"><input type="checkbox" id="tristate_cb" style="display: none;" onclick="javascript:switchCBState()" /><label id="all_files_cb" class="tristate" for="tristate_cb"></label></th>
+                    <th style="width: 4.5em; border-right: 0"><input type="checkbox" id="tristate_cb" onclick="switchCBState()" /></th>
                     <th>QBT_TR(Name)QBT_TR[CONTEXT=TorrentContentModel]</th>
                     <th style="width: 150px;">QBT_TR(Size)QBT_TR[CONTEXT=TorrentContentModel]</th>
                     <th style="width: 90px;">QBT_TR(Progress)QBT_TR[CONTEXT=TorrentContentModel]</th>
@@ -149,5 +153,7 @@
 
 <script>
     torrentPeersTable.setup('torrentPeersTableDiv', 'torrentPeersTableFixedHeaderDiv', null);
-    $(getLocalStorageItem('selected_tab', 'PropGeneralLink')).click();
+    var selectedTab = $(getLocalStorageItem('selected_tab', 'PropGeneralLink'));
+    if (selectedTab)
+        selectedTab.click();
 </script>

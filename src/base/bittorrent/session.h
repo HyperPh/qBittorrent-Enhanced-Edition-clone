@@ -239,7 +239,7 @@ namespace BitTorrent
             int diskJobTime = 0;
         } disk;
     };
-#endif
+#endif // LIBTORRENT_VERSION_NUM >= 10100
 
     class Session : public QObject
     {
@@ -387,6 +387,8 @@ namespace BitTorrent
         void setAnnounceToAllTiers(bool val);
         int asyncIOThreads() const;
         void setAsyncIOThreads(int num);
+        int checkingMemUsage() const;
+        void setCheckingMemUsage(int size);
         int diskCacheSize() const;
         void setDiskCacheSize(int size);
         int diskCacheTTL() const;
@@ -508,7 +510,6 @@ namespace BitTorrent
 
         // TorrentHandle interface
         void handleTorrentShareLimitChanged(TorrentHandle *const torrent);
-        void handleTorrentsPrioritiesChanged();
         void handleTorrentNameChanged(TorrentHandle *const torrent);
         void handleTorrentSavePathChanged(TorrentHandle *const torrent);
         void handleTorrentCategoryChanged(TorrentHandle *const torrent, const QString &oldCategory);
@@ -670,6 +671,8 @@ namespace BitTorrent
         void createTorrentHandle(const libtorrent::torrent_handle &nativeHandle);
 
         void saveResumeData();
+        void saveTorrentsQueue();
+        void removeTorrentsQueue();
 
 #if LIBTORRENT_VERSION_NUM < 10100
         void dispatchAlerts(libtorrent::alert *alertPtr);
@@ -694,6 +697,7 @@ namespace BitTorrent
         CachedSettingValue<bool> m_announceToAllTrackers;
         CachedSettingValue<bool> m_announceToAllTiers;
         CachedSettingValue<int> m_asyncIOThreads;
+        CachedSettingValue<int> m_checkingMemUsage;
         CachedSettingValue<int> m_diskCacheSize;
         CachedSettingValue<int> m_diskCacheTTL;
         CachedSettingValue<bool> m_useOSCache;

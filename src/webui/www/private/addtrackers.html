@@ -9,6 +9,17 @@
     <script src="scripts/lib/mootools-1.2-more.js"></script>
     <script>
         window.addEvent('domready', function() {
+            var setLocationKeyboardEvents = new Keyboard({
+                defaultEventType: 'keydown',
+                events: {
+                    'enter': function(event) {
+                        $('addTrackersButton').click();
+                        event.preventDefault();
+                    }
+                }
+            });
+            setLocationKeyboardEvents.activate();
+
             $('trackersUrls').focus();
             $('addTrackersButton').addEvent('click', function(e) {
                 new Event(e).stop();

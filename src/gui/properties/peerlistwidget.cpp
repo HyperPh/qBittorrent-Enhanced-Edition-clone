@@ -104,7 +104,7 @@ PeerListWidget::PeerListWidget(PropertiesWidget *parent)
         hideColumn(PeerListDelegate::COUNTRY);
     // Ensure that at least one column is visible at all times
     bool atLeastOne = false;
-    for (unsigned int i = 0; i < PeerListDelegate::IP_HIDDEN; ++i) {
+    for (int i = 0; i < PeerListDelegate::IP_HIDDEN; ++i) {
         if (!isColumnHidden(i)) {
             atLeastOne = true;
             break;
@@ -115,7 +115,7 @@ PeerListWidget::PeerListWidget(PropertiesWidget *parent)
     // To also mitigate the above issue, we have to resize each column when
     // its size is 0, because explicitly 'showing' the column isn't enough
     // in the above scenario.
-    for (unsigned int i = 0; i < PeerListDelegate::IP_HIDDEN; ++i)
+    for (int i = 0; i < PeerListDelegate::IP_HIDDEN; ++i)
         if ((columnWidth(i) <= 0) && !isColumnHidden(i))
             resizeColumnToContents(i);
     // Context menu
@@ -170,7 +170,7 @@ void PeerListWidget::displayToggleColumnsMenu(const QPoint &)
         actions.append(myAct);
     }
     int visibleCols = 0;
-    for (unsigned int i = 0; i < PeerListDelegate::IP_HIDDEN; ++i) {
+    for (int i = 0; i < PeerListDelegate::IP_HIDDEN; ++i) {
         if (!isColumnHidden(i))
             ++visibleCols;
 
@@ -249,9 +249,9 @@ void PeerListWidget::showPeerListMenu(const QPoint &)
     if (!act) return;
 
     if (act == addPeerAct) {
-        QList<BitTorrent::PeerAddress> peersList = PeersAdditionDialog::askForPeers(this);
+        const QList<BitTorrent::PeerAddress> peersList = PeersAdditionDialog::askForPeers(this);
         int peerCount = 0;
-        foreach (const BitTorrent::PeerAddress &addr, peersList) {
+        for (const BitTorrent::PeerAddress &addr : peersList) {
             if (torrent->connectPeer(addr)) {
                 qDebug("Adding peer %s...", qUtf8Printable(addr.ip.toString()));
                 Logger::instance()->addMessage(tr("Manually adding peer '%1'...").arg(addr.ip.toString()));
@@ -285,8 +285,8 @@ void PeerListWidget::banSelectedPeers()
                                     QString(), 0, 1);
     if (ret) return;
 
-    QModelIndexList selectedIndexes = selectionModel()->selectedRows();
-    foreach (const QModelIndex &index, selectedIndexes) {
+    const QModelIndexList selectedIndexes = selectionModel()->selectedRows();
+    for (const QModelIndex &index : selectedIndexes) {
         int row = m_proxyModel->mapToSource(index).row();
         QString ip = m_listModel->data(m_listModel->index(row, PeerListDelegate::IP_HIDDEN)).toString();
         QString client = m_listModel->data(m_listModel->index(row, PeerListDelegate::CLIENT)).toString();
@@ -304,9 +304,9 @@ void PeerListWidget::banSelectedPeers()
 
 void PeerListWidget::copySelectedPeers()
 {
-    QModelIndexList selectedIndexes = selectionModel()->selectedRows();
+    const QModelIndexList selectedIndexes = selectionModel()->selectedRows();
     QStringList selectedPeers;
-    foreach (const QModelIndex &index, selectedIndexes) {
+    for (const QModelIndex &index : selectedIndexes) {
         int row = m_proxyModel->mapToSource(index).row();
         QString ip = m_listModel->data(m_listModel->index(row, PeerListDelegate::IP_HIDDEN)).toString();
         QString myport = m_listModel->data(m_listModel->index(row, PeerListDelegate::PORT)).toString();
@@ -327,7 +327,7 @@ void PeerListWidget::clear()
     int nbrows = m_listModel->rowCount();
     if (nbrows > 0) {
         qDebug("Cleared %d peers", nbrows);
-        m_listModel->removeRows(0,  nbrows);
+        m_listModel->removeRows(0, nbrows);
     }
 }
 
@@ -345,10 +345,10 @@ void PeerListWidget::loadPeers(BitTorrent::TorrentHandle *const torrent, bool fo
 {
     if (!torrent) return;
 
-    QList<BitTorrent::PeerInfo> peers = torrent->peers();
+    const QList<BitTorrent::PeerInfo> peers = torrent->peers();
     QSet<QString> oldPeersSet = m_peerItems.keys().toSet();
 
-    foreach (const BitTorrent::PeerInfo &peer, peers) {
+    for (const BitTorrent::PeerInfo &peer : peers) {
         BitTorrent::PeerAddress addr = peer.address();
         if (addr.ip.isNull()) continue;
 

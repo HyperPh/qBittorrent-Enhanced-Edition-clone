@@ -201,6 +201,8 @@ public:
     void setWebUiClickjackingProtectionEnabled(bool enabled);
     bool isWebUiCSRFProtectionEnabled() const;
     void setWebUiCSRFProtectionEnabled(bool enabled);
+    bool isWebUIHostHeaderValidationEnabled() const;
+    void setWebUIHostHeaderValidationEnabled(bool enabled);
 
     // HTTPS
     bool isWebUiHttpsEnabled() const;
@@ -297,7 +299,7 @@ public:
     void setCloseToTrayNotified(bool b);
     TrayIcon::Style trayIconStyle() const;
     void setTrayIconStyle(TrayIcon::Style style);
-#endif
+#endif // Q_OS_MAC
     bool getAutoBanUnknownPeer() const;
     void setAutoBanUnknownPeer(const bool checked);
     bool getShowTrackerAuthWindow() const;

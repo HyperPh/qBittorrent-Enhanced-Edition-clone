@@ -66,7 +66,8 @@
                             <li><a id="showTopToolbarLink"><img class="MyMenuIcon" src="images/qbt-theme/checked.svg" alt="QBT_TR(Top Toolbar)QBT_TR[CONTEXT=MainWindow]" width="16" height="16"/>QBT_TR(Top Toolbar)QBT_TR[CONTEXT=MainWindow]</a></li>
                             <li><a id="showStatusBarLink"><img class="MyMenuIcon" src="images/qbt-theme/checked.svg" alt="QBT_TR(Status Bar)QBT_TR[CONTEXT=MainWindow]" width="16" height="16"/>QBT_TR(Status Bar)QBT_TR[CONTEXT=MainWindow]</a></li>
                             <li><a id="speedInBrowserTitleBarLink"><img class="MyMenuIcon" src="images/qbt-theme/checked.svg" alt="QBT_TR(Speed in Title Bar)QBT_TR[CONTEXT=MainWindow]" width="16" height="16"/>QBT_TR(Speed in Title Bar)QBT_TR[CONTEXT=MainWindow]</a></li>
-                            <li class="divider"><a id=StatisticsLink><img class="MyMenuIcon" src="images/qbt-theme/view-statistics.svg" alt="QBT_TR(Statistics)QBT_TR[CONTEXT=MainWindow]" width="16" height="16"/>QBT_TR(Statistics)QBT_TR[CONTEXT=MainWindow]</a></li>
+                            <li class="divider"><a id="showSearchEngineLink"><img class="MyMenuIcon" src="images/qbt-theme/checked.svg" alt="QBT_TR(Search Engine)QBT_TR[CONTEXT=MainWindow]" width="16" height="16"/>QBT_TR(Search Engine)QBT_TR[CONTEXT=MainWindow]</a></li>
+                            <li class="divider"><a id="StatisticsLink"><img class="MyMenuIcon" src="images/qbt-theme/view-statistics.svg" alt="QBT_TR(Statistics)QBT_TR[CONTEXT=MainWindow]" width="16" height="16"/>QBT_TR(Statistics)QBT_TR[CONTEXT=MainWindow]</a></li>
                         </ul>
                     </li>
                     <li>
@@ -99,6 +100,16 @@
                     <a id="bottomPrioButton"><img class="mochaToolButton" title="QBT_TR(Minimum Priority)QBT_TR[CONTEXT=MainWindow]" src="images/qbt-theme/go-bottom.svg" alt="QBT_TR(Minimum Priority)QBT_TR[CONTEXT=MainWindow]" width="24" height="24"/></a>
                 </span>
                 <a id="preferencesButton" class="divider"><img class="mochaToolButton" title="QBT_TR(Options)QBT_TR[CONTEXT=OptionsDialog]" src="images/qbt-theme/configure.svg" alt="QBT_TR(Options)QBT_TR[CONTEXT=OptionsDialog]" width="24" height="24"/></a>
+                <div id="mainWindowTabs" class="toolbarTabs">
+                    <ul id="mainWindowTabsList" class="tab-menu">
+                        <li id="transfersTabLink" class="selected"><a class="tab">QBT_TR(Transfers)QBT_TR[CONTEXT=MainWindow]</a></li>
+                        <li id="searchTabLink"><a class="tab">QBT_TR(Search)QBT_TR[CONTEXT=MainWindow]</a></li>
+                    </ul>
+                    <div class="clear"></div>
+                </div>
+                <div id="torrentsFilterToolbar">
+                    <input type="text" id="torrentsFilterInput" placeholder="QBT_TR(Filter torrent list...)QBT_TR[CONTEXT=MainWindow]" autocorrect="off" autocapitalize="none" />
+                </div>
             </div>
         </div>
         <div id="pageWrapper">
@@ -149,6 +160,12 @@
         <li class="separator"><a href="#StartTorrentsByCategory"><img src="images/qbt-theme/media-playback-start.svg" alt="QBT_TR(Resume torrents)QBT_TR[CONTEXT=CategoryFilterWidget]"/> QBT_TR(Resume torrents)QBT_TR[CONTEXT=CategoryFilterWidget]</a></li>
         <li><a href="#PauseTorrentsByCategory"><img src="images/qbt-theme/media-playback-pause.svg" alt="QBT_TR(Pause torrents)QBT_TR[CONTEXT=CategoryFilterWidget]"/> QBT_TR(Pause torrents)QBT_TR[CONTEXT=CategoryFilterWidget]</a></li>
         <li><a href="#DeleteTorrentsByCategory"><img src="images/qbt-theme/edit-delete.svg" alt="QBT_TR(Delete torrents)QBT_TR[CONTEXT=CategoryFilterWidget]"/> QBT_TR(Delete torrents)QBT_TR[CONTEXT=CategoryFilterWidget]</a></li>
+    </ul>
+    <ul id="torrentTrackersMenu" class="contextMenu">
+        <li><a href="#AddTracker"><img src="images/qbt-theme/list-add.svg" alt="QBT_TR(Add a new tracker...)QBT_TR[CONTEXT=TrackerListWidget]"/> QBT_TR(Add a new tracker...)QBT_TR[CONTEXT=TrackerListWidget]</a></li>
+        <li class="separator"><a href="#EditTracker"><img src="images/qbt-theme/document-edit.svg" alt="QBT_TR(Edit tracker URL...)QBT_TR[CONTEXT=TrackerListWidget]"/> QBT_TR(Edit tracker URL...)QBT_TR[CONTEXT=TrackerListWidget]</a></li>
+        <li><a href="#RemoveTracker"><img src="images/qbt-theme/list-remove.svg" alt="QBT_TR(Remove tracker)QBT_TR[CONTEXT=TrackerListWidget]"/> QBT_TR(Remove tracker)QBT_TR[CONTEXT=TrackerListWidget]</a></li>
+        <li><a href="#CopyTrackerUrl" id="CopyTrackerUrl"><img src="images/qbt-theme/edit-copy.svg" alt="QBT_TR(Copy tracker URL)QBT_TR[CONTEXT=TrackerListWidget]"/> QBT_TR(Copy tracker URL)QBT_TR[CONTEXT=TrackerListWidget]</a></li>
     </ul>
     <div id="desktopFooterWrapper">
         <div id="desktopFooter">

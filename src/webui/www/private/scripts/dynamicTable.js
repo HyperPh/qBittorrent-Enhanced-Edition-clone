@@ -56,6 +56,7 @@ var DynamicTable = new Class({
         this.setupCommonEvents();
         this.setupHeaderEvents();
         this.setupHeaderMenu();
+        this.setSortedColumnIcon(this.sortedColumn, null, (this.reverseSort === '1'));
     },
 
     setupCommonEvents: function() {
@@ -65,39 +66,42 @@ var DynamicTable = new Class({
 
         $(this.dynamicTableDivId).addEvent('scroll', scrollFn);
 
-        var resizeFn = function() {
-            var panel = $(this.dynamicTableDivId).getParent('.panel');
-            var h = panel.getBoundingClientRect().height - $(this.dynamicTableFixedHeaderDivId).getBoundingClientRect().height;
-            $(this.dynamicTableDivId).style.height = h + 'px';
-
-            // Workaround due to inaccurate calculation of elements heights by browser
-
-            var n = 2;
-
-            while (panel.clientWidth != panel.offsetWidth && n > 0) { // is panel vertical scrollbar visible ?
-                --n;
-                h -= 0.5;
+        // if the table exists within a panel
+        if ($(this.dynamicTableDivId).getParent('.panel')) {
+            var resizeFn = function() {
+                var panel = $(this.dynamicTableDivId).getParent('.panel');
+                var h = panel.getBoundingClientRect().height - $(this.dynamicTableFixedHeaderDivId).getBoundingClientRect().height;
                 $(this.dynamicTableDivId).style.height = h + 'px';
-            }
 
-            this.lastPanelHeight = panel.getBoundingClientRect().height;
-        }.bind(this);
+                // Workaround due to inaccurate calculation of elements heights by browser
 
-        $(this.dynamicTableDivId).getParent('.panel').addEvent('resize', resizeFn);
+                var n = 2;
 
-        this.lastPanelHeight = 0;
+                while (panel.clientWidth != panel.offsetWidth && n > 0) { // is panel vertical scrollbar visible ?
+                    --n;
+                    h -= 0.5;
+                    $(this.dynamicTableDivId).style.height = h + 'px';
+                }
 
-        // Workaround. Resize event is called not always (for example it isn't called when browser window changes it's size)
-
-        var checkResizeFn = function() {
-            var panel = $(this.dynamicTableDivId).getParent('.panel');
-            if (this.lastPanelHeight != panel.getBoundingClientRect().height) {
                 this.lastPanelHeight = panel.getBoundingClientRect().height;
-                panel.fireEvent('resize');
-            }
-        }.bind(this);
+            }.bind(this);
 
-        setInterval(checkResizeFn, 500);
+            $(this.dynamicTableDivId).getParent('.panel').addEvent('resize', resizeFn);
+
+            this.lastPanelHeight = 0;
+
+            // Workaround. Resize event is called not always (for example it isn't called when browser window changes it's size)
+
+            var checkResizeFn = function() {
+                var panel = $(this.dynamicTableDivId).getParent('.panel');
+                if (this.lastPanelHeight != panel.getBoundingClientRect().height) {
+                    this.lastPanelHeight = panel.getBoundingClientRect().height;
+                    panel.fireEvent('resize');
+                }
+            }.bind(this);
+
+            setInterval(checkResizeFn, 500);
+        }
     },
 
     setupHeaderEvents: function() {
@@ -403,6 +407,7 @@ var DynamicTable = new Class({
             th.innerHTML = this.columns[i].caption;
             th.setAttribute('style', 'width: ' + this.columns[i].width + 'px;' + this.columns[i].style);
             th.columnName = this.columns[i].name;
+            th.addClass('column_' + th.columnName);
             if ((this.columns[i].visible == '0') || this.columns[i].force_hide)
                 th.addClass('invisible');
             else
@@ -447,16 +452,42 @@ var DynamicTable = new Class({
 
     setSortedColumn: function(column) {
         if (column != this.sortedColumn) {
+            var oldColumn = this.sortedColumn;
             this.sortedColumn = column;
             this.reverseSort = '0';
+            this.setSortedColumnIcon(column, oldColumn, false);
         }
         else {
             // Toggle sort order
             this.reverseSort = this.reverseSort == '0' ? '1' : '0';
+            this.setSortedColumnIcon(column, null, (this.reverseSort === '1'));
         }
         localStorage.setItem('sorted_column_' + this.dynamicTableDivId, column);
         localStorage.setItem('reverse_sort_' + this.dynamicTableDivId, this.reverseSort);
         this.updateTable(false);
+    },
+
+    setSortedColumnIcon: function(newColumn, oldColumn, isReverse) {
+        var getCol = function(headerDivId, colName) {
+            var colElem = $$("#" + headerDivId + " .column_" + colName);
+            if (colElem.length == 1)
+                return colElem[0];
+            return null;
+        };
+
+        var colElem = getCol(this.dynamicTableFixedHeaderDivId, newColumn);
+        if (colElem !== null) {
+            colElem.addClass('sorted');
+            if (isReverse)
+                colElem.addClass('reverse');
+            else
+                colElem.removeClass('reverse');
+        }
+        var oldColElem = getCol(this.dynamicTableFixedHeaderDivId, oldColumn);
+        if (oldColElem !== null) {
+            oldColElem.removeClass('sorted');
+            oldColElem.removeClass('reverse');
+        }
     },
 
     getSelectedRowId: function() {
@@ -1108,8 +1139,9 @@ var TorrentsTable = new Class({
         };
     },
 
-    applyFilter: function(row, filterName, categoryHash) {
+    applyFilter: function(row, filterName, categoryHash, filterTerms) {
         var state = row['full_data'].state;
+        var name = row['full_data'].name.toLowerCase();
         var inactive = false;
         var r;
 
@@ -1151,14 +1183,27 @@ var TorrentsTable = new Class({
                 break;
         }
 
-        if (categoryHash == CATEGORIES_ALL)
-            return true;
+        var categoryHashInt = parseInt(categoryHash);
+        if (!isNaN(categoryHashInt)) {
+            switch (categoryHashInt) {
+                case CATEGORIES_ALL:
+                    break;  // do nothing
+                case CATEGORIES_UNCATEGORIZED:
+                    if (row['full_data'].category.length !== 0)
+                        return false
+                    break;  // do nothing
+                default:
+                    if (categoryHashInt !== genHash(row['full_data'].category))
+                        return false;
+            }
+        }
 
-        if (categoryHash == CATEGORIES_UNCATEGORIZED && row['full_data'].category.length === 0)
-            return true;
-
-        if (categoryHash != genHash(row['full_data'].category))
-            return false;
+        if (filterTerms) {
+            for (var i = 0; i < filterTerms.length; ++i) {
+                if (name.indexOf(filterTerms[i]) === -1)
+                    return false;
+            }
+        }
 
         return true;
     },
@@ -1168,7 +1213,7 @@ var TorrentsTable = new Class({
         var rows = this.rows.getValues();
 
         for (var i = 0; i < rows.length; ++i)
-            if (this.applyFilter(rows[i], filterName, categoryHash)) ++cnt;
+            if (this.applyFilter(rows[i], filterName, categoryHash, null)) ++cnt;
         return cnt;
     },
 
@@ -1177,7 +1222,7 @@ var TorrentsTable = new Class({
         var rows = this.rows.getValues();
 
         for (var i = 0; i < rows.length; ++i)
-            if (this.applyFilter(rows[i], filterName, categoryHash))
+            if (this.applyFilter(rows[i], filterName, categoryHash, null))
                 rowsHashes.push(rows[i]['rowId']);
 
         return rowsHashes;
@@ -1187,12 +1232,15 @@ var TorrentsTable = new Class({
         var filteredRows = [];
 
         var rows = this.rows.getValues();
+        var filterText = $('torrentsFilterInput').value.trim().toLowerCase();
+        var filterTerms = (filterText.length > 0) ? filterText.split(" ") : null;
 
-        for (var i = 0; i < rows.length; ++i)
-            if (this.applyFilter(rows[i], selected_filter, selected_category)) {
+        for (var i = 0; i < rows.length; ++i) {
+            if (this.applyFilter(rows[i], selected_filter, selected_category, filterTerms)) {
                 filteredRows.push(rows[i]);
                 filteredRows[rows[i].rowId] = rows[i];
             }
+        }
 
         filteredRows.sort(function(row1, row2) {
             var column = this.columns[this.sortedColumn];
@@ -1237,6 +1285,8 @@ var TorrentPeersTable = new Class({
         this.newColumn('country', '', 'QBT_TR(Country)QBT_TR[CONTEXT=PeerListWidget]', 22, true);
         this.newColumn('ip', '', 'QBT_TR(IP)QBT_TR[CONTEXT=PeerListWidget]', 80, true);
         this.newColumn('port', '', 'QBT_TR(Port)QBT_TR[CONTEXT=PeerListWidget]', 35, true);
+        this.newColumn('connection', '', 'QBT_TR(Connection)QBT_TR[CONTEXT=PeerListWidget]', 50, true);
+        this.newColumn('flags', '', 'QBT_TR(Flags)QBT_TR[CONTEXT=PeerListWidget]', 50, true);
         this.newColumn('client', '', 'QBT_TR(Client)QBT_TR[CONTEXT=PeerListWidget]', 140, true);
         this.newColumn('peer_id', '', 'QBT_TR(Peer ID)QBT_TR[CONTEXT=PeerListWidget]', 60, true);
         this.newColumn('progress', '', 'QBT_TR(Progress)QBT_TR[CONTEXT=PeerListWidget]', 50, true);
@@ -1244,8 +1294,6 @@ var TorrentPeersTable = new Class({
         this.newColumn('up_speed', '', 'QBT_TR(Up Speed)QBT_TR[CONTEXT=PeerListWidget]', 50, true);
         this.newColumn('downloaded', '', 'QBT_TR(Downloaded)QBT_TR[CONTEXT=PeerListWidget]', 50, true);
         this.newColumn('uploaded', '', 'QBT_TR(Uploaded)QBT_TR[CONTEXT=PeerListWidget]', 50, true);
-        this.newColumn('connection', '', 'QBT_TR(Connection)QBT_TR[CONTEXT=PeerListWidget]', 50, true);
-        this.newColumn('flags', '', 'QBT_TR(Flags)QBT_TR[CONTEXT=PeerListWidget]', 50, true);
         this.newColumn('relevance', '', 'QBT_TR(Relevance)QBT_TR[CONTEXT=PeerListWidget]', 30, true);
         this.newColumn('files', '', 'QBT_TR(Files)QBT_TR[CONTEXT=PeerListWidget]', 100, true);
 
@@ -1353,5 +1401,166 @@ var TorrentPeersTable = new Class({
 
     }
 });
+
+var SearchResultsTable = new Class({
+        Extends: DynamicTable,
+
+        initColumns: function () {
+            this.newColumn('fileName', '', 'QBT_TR(Name)QBT_TR[CONTEXT=SearchResultsTable]', 500, true);
+            this.newColumn('fileSize', '', 'QBT_TR(Size)QBT_TR[CONTEXT=SearchResultsTable]', 100, true);
+            this.newColumn('nbSeeders', '', 'QBT_TR(Seeders)QBT_TR[CONTEXT=SearchResultsTable]', 100, true);
+            this.newColumn('nbLeechers', '', 'QBT_TR(Leechers)QBT_TR[CONTEXT=SearchResultsTable]', 100, true);
+            this.newColumn('siteUrl', '', 'QBT_TR(Search engine)QBT_TR[CONTEXT=SearchResultsTable]', 250, true);
+
+            this.initColumnsFunctions();
+        },
+
+        initColumnsFunctions: function () {
+            var displayText = function (td, row) {
+                var value = this.getRowValue(row);
+                td.set('html', escapeHtml(value));
+            }
+            var displaySize = function(td, row) {
+                var size = this.getRowValue(row);
+                td.set('html', friendlyUnit(size, false));
+            }
+            var displayNum = function (td, row) {
+                var value = escapeHtml(this.getRowValue(row));
+                td.set('html', (value === "-1") ? "Unknown" : value);
+            }
+
+            this.columns['fileName'].updateTd = displayText;
+            this.columns['fileSize'].updateTd = displaySize;
+            this.columns['nbSeeders'].updateTd = displayNum;
+            this.columns['nbLeechers'].updateTd = displayNum;
+            this.columns['siteUrl'].updateTd = displayText;
+        },
+
+        getFilteredAndSortedRows: function () {
+            var containsAll = function(text, searchTerms) {
+                text = text.toLowerCase();
+                for (var i = 0; i < searchTerms.length; ++i) {
+                    if (text.indexOf(searchTerms[i].toLowerCase()) === -1)
+                        return false;
+                }
+
+                return true;
+            };
+
+            var getSizeFilters = function() {
+                var minSize = (searchSizeFilter.min > 0.00) ? (searchSizeFilter.min * Math.pow(1024, searchSizeFilter.minUnit)) : 0.00;
+                var maxSize = (searchSizeFilter.max > 0.00) ? (searchSizeFilter.max * Math.pow(1024, searchSizeFilter.maxUnit)) : 0.00;
+
+                if ((minSize > maxSize) && (maxSize > 0.00)) {
+                    var tmp = minSize;
+                    minSize = maxSize;
+                    maxSize = tmp;
+                }
+
+                return {
+                    min: minSize,
+                    max: maxSize
+                }
+            };
+
+            var getSeedsFilters = function() {
+                var minSeeds = (searchSeedsFilter.min > 0) ? searchSeedsFilter.min : 0;
+                var maxSeeds = (searchSeedsFilter.max > 0) ? searchSeedsFilter.max : 0;
+
+                if ((minSeeds > maxSeeds) && (maxSeeds > 0)) {
+                    var tmp = minSeeds;
+                    minSeeds = maxSeeds;
+                    maxSeeds = tmp;
+                }
+
+                return {
+                    min: minSeeds,
+                    max: maxSeeds
+                }
+            }
+
+            var filteredRows = [];
+            var rows = this.rows.getValues();
+            var searchTerms = searchPattern.toLowerCase().split(" ");
+            var filterTerms = searchFilterPattern.toLowerCase().split(" ");
+            var sizeFilters = getSizeFilters();
+            var seedsFilters = getSeedsFilters();
+            var searchInTorrentName = $('searchInTorrentName').get('value') === "names";
+
+            if (searchInTorrentName || filterTerms.length || (searchSizeFilter.min > 0.00) || (searchSizeFilter.max > 0.00)) {
+                for (var i = 0; i < rows.length; ++i) {
+                    var row = rows[i];
+
+                    if (searchInTorrentName && !containsAll(row.full_data.fileName, searchTerms)) continue;
+                    if (filterTerms.length && !containsAll(row.full_data.fileName, filterTerms)) continue;
+                    if ((sizeFilters.min > 0.00) && (row.full_data.fileSize < sizeFilters.min)) continue;
+                    if ((sizeFilters.max > 0.00) && (row.full_data.fileSize > sizeFilters.max)) continue;
+                    if ((seedsFilters.min > 0) && (row.full_data.nbSeeders < seedsFilters.min)) continue;
+                    if ((seedsFilters.max > 0) && (row.full_data.nbSeeders > seedsFilters.max)) continue;
+
+                    filteredRows.push(row);
+                }
+            }
+            else {
+                filteredRows = rows;
+            }
+
+            filteredRows.sort(function (row1, row2) {
+                var column = this.columns[this.sortedColumn];
+                var res = column.compareRows(row1, row2);
+                if (this.reverseSort == '0')
+                    return res;
+                else
+                    return -res;
+            }.bind(this));
+
+            return filteredRows;
+        },
+
+        setupTr: function (tr) {
+            tr.addClass("searchTableRow");
+        }
+    });
+
+var SearchPluginsTable = new Class({
+        Extends: DynamicTable,
+
+        initColumns: function () {
+            this.newColumn('fullName', '', 'QBT_TR(Name)QBT_TR[CONTEXT=SearchPluginsTable]', 175, true);
+            this.newColumn('version', '', 'QBT_TR(Version)QBT_TR[CONTEXT=SearchPluginsTable]', 100, true);
+            this.newColumn('url', '', 'QBT_TR(Url)QBT_TR[CONTEXT=SearchPluginsTable]', 175, true);
+            this.newColumn('enabled', '', 'QBT_TR(Enabled)QBT_TR[CONTEXT=SearchPluginsTable]', 100, true);
+
+            this.initColumnsFunctions();
+        },
+
+        initColumnsFunctions: function () {
+            var displayText = function (td, row) {
+                var value = this.getRowValue(row);
+                td.set('html', escapeHtml(value));
+            }
+
+            this.columns['fullName'].updateTd = displayText;
+            this.columns['version'].updateTd = displayText;
+            this.columns['url'].updateTd = displayText;
+            this.columns['enabled'].updateTd = function(td, row) {
+                var value = this.getRowValue(row);
+                if (value) {
+                    td.set('html', "Yes");
+                    td.getParent("tr").addClass("green");
+                    td.getParent("tr").removeClass("red");
+                }
+                else {
+                    td.set('html', "No");
+                    td.getParent("tr").addClass("red");
+                    td.getParent("tr").removeClass("green");
+                }
+            };
+        },
+
+        setupTr: function (tr) {
+            tr.addClass("searchPluginsTableRow");
+        }
+    });
 
 /*************************************************************/

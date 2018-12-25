@@ -36,6 +36,7 @@
 #include <QUrl>
 #include <QVector>
 
+#include "base/bittorrent/filepriority.h"
 #include "base/bittorrent/magneturi.h"
 #include "base/bittorrent/session.h"
 #include "base/bittorrent/torrenthandle.h"
@@ -143,7 +144,7 @@ AddNewTorrentDialog::AddNewTorrentDialog(const BitTorrent::AddTorrentParams &inP
         m_ui->categoryComboBox->addItem(defaultCategory);
     m_ui->categoryComboBox->addItem("");
 
-    foreach (const QString &category, categories)
+    for (const QString &category : asConst(categories))
         if (category != defaultCategory && category != m_torrentParams.category)
             m_ui->categoryComboBox->addItem(category);
 
@@ -398,7 +399,7 @@ void AddNewTorrentDialog::saveSavePathHistory() const
     // Get current history
     QStringList history = settings()->loadValue(KEY_SAVEPATHHISTORY).toStringList();
     QVector<QDir> historyDirs;
-    for (const QString &path : qAsConst(history))
+    for (const QString &path : asConst(history))
         historyDirs << QDir {path};
 
     const QDir selectedSavePath {m_ui->savePath->selectedPath()};
@@ -622,18 +623,18 @@ void AddNewTorrentDialog::displayContentTreeMenu(const QPoint &)
             renameSelectedFile();
         }
         else {
-            int prio = prio::NORMAL;
+            BitTorrent::FilePriority prio = BitTorrent::FilePriority::Normal;
             if (act == m_ui->actionHigh)
-                prio = prio::HIGH;
+                prio = BitTorrent::FilePriority::High;
             else if (act == m_ui->actionMaximum)
-                prio = prio::MAXIMUM;
+                prio = BitTorrent::FilePriority::Maximum;
             else if (act == m_ui->actionNotDownloaded)
-                prio = prio::IGNORED;
+                prio = BitTorrent::FilePriority::Ignored;
 
             qDebug("Setting files priority");
-            foreach (const QModelIndex &index, selectedRows) {
-                qDebug("Setting priority(%d) for file at row %d", prio, index.row());
-                m_contentModel->setData(m_contentModel->index(index.row(), PRIORITY, index.parent()), prio);
+            for (const QModelIndex &index : selectedRows) {
+                qDebug("Setting priority(%d) for file at row %d", static_cast<int>(prio), index.row());
+                m_contentModel->setData(m_contentModel->index(index.row(), PRIORITY, index.parent()), static_cast<int>(prio));
             }
         }
     }

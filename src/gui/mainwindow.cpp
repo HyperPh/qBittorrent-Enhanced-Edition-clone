@@ -285,7 +285,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_prioSeparatorMenu = m_ui->menuEdit->insertSeparator(m_ui->actionTopPriority);
 
 #ifdef Q_OS_MAC
-    foreach (QAction *action, m_ui->toolBar->actions()) {
+    for (QAction *action : asConst(m_ui->toolBar->actions())) {
         if (action->isSeparator()) {
             QWidget *spacer = new QWidget(this);
             spacer->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -306,7 +306,7 @@ MainWindow::MainWindow(QWidget *parent)
         spacer->setMinimumWidth(8);
         m_ui->toolBar->addWidget(spacer);
     }
-#endif
+#endif // Q_OS_MAC
 
     // Transfer list slots
     connect(m_ui->actionStart, &QAction::triggered, m_transferListWidget, &TransferListWidget::startSelectedTorrents);
@@ -1111,7 +1111,7 @@ void MainWindow::toggleVisibility(const QSystemTrayIcon::ActivationReason reason
         break;
     }
 }
-#endif
+#endif // Q_OS_MAC
 
 // Display About Dialog
 void MainWindow::on_actionAbout_triggered()
@@ -1240,7 +1240,7 @@ bool MainWindow::event(QEvent *e)
                 qDebug() << "Has active window:" << (qApp->activeWindow() != nullptr);
                 // Check if there is a modal window
                 bool hasModalWindow = false;
-                foreach (QWidget *widget, QApplication::allWidgets()) {
+                for (QWidget *widget : asConst(QApplication::allWidgets())) {
                     if (widget->isModal()) {
                         hasModalWindow = true;
                         break;
@@ -1273,7 +1273,7 @@ bool MainWindow::event(QEvent *e)
     default:
         break;
     }
-#endif
+#endif // Q_OS_MAC
 
     return QMainWindow::event(e);
 }
@@ -1286,7 +1286,7 @@ void MainWindow::dropEvent(QDropEvent *event)
     // remove scheme
     QStringList files;
     if (event->mimeData()->hasUrls()) {
-        foreach (const QUrl &url, event->mimeData()->urls()) {
+        for (const QUrl &url : asConst(event->mimeData()->urls())) {
             if (url.isEmpty())
                 continue;
 
@@ -1301,7 +1301,7 @@ void MainWindow::dropEvent(QDropEvent *event)
 
     // differentiate ".torrent" files/links & magnet links from others
     QStringList torrentFiles, otherFiles;
-    foreach (const QString &file, files) {
+    for (const QString &file : asConst(files)) {
         const bool isTorrentLink = (file.startsWith("magnet:", Qt::CaseInsensitive)
             || file.endsWith(C_TORRENT_FILE_EXTENSION, Qt::CaseInsensitive)
             || Utils::Misc::isUrl(file));
@@ -1313,7 +1313,7 @@ void MainWindow::dropEvent(QDropEvent *event)
 
     // Download torrents
     const bool useTorrentAdditionDialog = AddNewTorrentDialog::isEnabled();
-    foreach (const QString &file, torrentFiles) {
+    for (const QString &file : asConst(torrentFiles)) {
         if (useTorrentAdditionDialog)
             AddNewTorrentDialog::show(file, this);
         else
@@ -1322,7 +1322,7 @@ void MainWindow::dropEvent(QDropEvent *event)
     if (!torrentFiles.isEmpty()) return;
 
     // Create torrent
-    foreach (const QString &file, otherFiles) {
+    for (const QString &file : asConst(otherFiles)) {
         createTorrentTriggered(file);
 
         // currently only hande the first entry
@@ -1334,7 +1334,7 @@ void MainWindow::dropEvent(QDropEvent *event)
 // Decode if we accept drag 'n drop or not
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
-    foreach (const QString &mime, event->mimeData()->formats())
+    for (const QString &mime : asConst(event->mimeData()->formats()))
         qDebug("mimeData: %s", mime.toLocal8Bit().data());
     if (event->mimeData()->hasFormat("text/plain") || event->mimeData()->hasFormat("text/uri-list"))
         event->acceptProposedAction();
@@ -1362,7 +1362,7 @@ void MainWindow::setupDockClickHandler()
     MacUtils::overrideDockClickHandler(dockClickHandler);
 }
 
-#endif
+#endif // Q_OS_MAC
 
 /*****************************************************
 *                                                   *
@@ -1383,7 +1383,7 @@ void MainWindow::on_actionOpen_triggered()
 
     const bool useTorrentAdditionDialog = AddNewTorrentDialog::isEnabled();
     if (!pathsList.isEmpty()) {
-        foreach (QString file, pathsList) {
+        for (const QString &file : pathsList) {
             qDebug("Dropped file %s on download list", qUtf8Printable(file));
             if (useTorrentAdditionDialog)
                 AddNewTorrentDialog::show(file, this);
@@ -1636,7 +1636,7 @@ void MainWindow::showNotificationBaloon(QString title, QString msg) const
 void MainWindow::downloadFromURLList(const QStringList &urlList)
 {
     const bool useTorrentAdditionDialog = AddNewTorrentDialog::isEnabled();
-    foreach (QString url, urlList) {
+    for (QString url : urlList) {
         if (((url.size() == 40) && !url.contains(QRegularExpression("[^0-9A-Fa-f]")))
             || ((url.size() == 32) && !url.contains(QRegularExpression("[^2-7A-Za-z]"))))
             url = "magnet:?xt=urn:btih:" + url;

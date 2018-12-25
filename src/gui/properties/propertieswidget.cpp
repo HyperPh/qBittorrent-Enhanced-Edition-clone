@@ -38,6 +38,7 @@
 #include <QThread>
 #include <QTimer>
 
+#include "base/bittorrent/filepriority.h"
 #include "base/bittorrent/session.h"
 #include "base/preferences.h"
 #include "base/unicodestrings.h"
@@ -511,7 +512,7 @@ void PropertiesWidget::loadUrlSeeds()
     qDebug("Loading URL seeds");
     const QList<QUrl> hcSeeds = m_torrent->urlSeeds();
     // Add url seeds
-    foreach (const QUrl &hcSeed, hcSeeds) {
+    for (const QUrl &hcSeed : hcSeeds) {
         qDebug("Loading URL seed: %s", qUtf8Printable(hcSeed.toString()));
         new QListWidgetItem(hcSeed.toString(), m_ui->listWebSeeds);
     }
@@ -582,7 +583,7 @@ void PropertiesWidget::displayFilesListMenu(const QPoint &)
 {
     if (!m_torrent) return;
 
-    QModelIndexList selectedRows = m_ui->filesList->selectionModel()->selectedRows(0);
+    const QModelIndexList selectedRows = m_ui->filesList->selectionModel()->selectedRows(0);
     if (selectedRows.empty()) return;
 
     QMenu myFilesLlistMenu;
@@ -621,18 +622,18 @@ void PropertiesWidget::displayFilesListMenu(const QPoint &)
         renameSelectedFile();
     }
     else {
-        int prio = prio::NORMAL;
+        BitTorrent::FilePriority prio = BitTorrent::FilePriority::Normal;
         if (act == m_ui->actionHigh)
-            prio = prio::HIGH;
+            prio = BitTorrent::FilePriority::High;
         else if (act == m_ui->actionMaximum)
-            prio = prio::MAXIMUM;
+            prio = BitTorrent::FilePriority::Maximum;
         else if (act == m_ui->actionNotDownloaded)
-            prio = prio::IGNORED;
+            prio = BitTorrent::FilePriority::Ignored;
 
         qDebug("Setting files priority");
-        foreach (QModelIndex index, selectedRows) {
-            qDebug("Setting priority(%d) for file at row %d", prio, index.row());
-            m_propListModel->setData(m_propListModel->index(index.row(), PRIORITY, index.parent()), prio);
+        for (const QModelIndex &index : selectedRows) {
+            qDebug("Setting priority(%d) for file at row %d", static_cast<int>(prio), index.row());
+            m_propListModel->setData(m_propListModel->index(index.row(), PRIORITY, index.parent()), static_cast<int>(prio));
         }
         // Save changes
         filteredFilesChanged();
@@ -847,7 +848,7 @@ void PropertiesWidget::deleteSelectedUrlSeeds()
     if (selectedItems.isEmpty()) return;
 
     QList<QUrl> urlSeeds;
-    foreach (const QListWidgetItem *item, selectedItems)
+    for (const QListWidgetItem *item : selectedItems)
         urlSeeds << item->text();
 
     m_torrent->removeUrlSeeds(urlSeeds);
@@ -861,7 +862,7 @@ void PropertiesWidget::copySelectedWebSeedsToClipboard() const
     if (selectedItems.isEmpty()) return;
 
     QStringList urlsToCopy;
-    foreach (QListWidgetItem *item, selectedItems)
+    for (const QListWidgetItem *item : selectedItems)
         urlsToCopy << item->text();
 
     QApplication::clipboard()->setText(urlsToCopy.join('\n'));
