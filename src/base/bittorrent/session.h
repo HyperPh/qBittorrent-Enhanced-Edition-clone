@@ -40,8 +40,10 @@
 #include <QMap>
 #include <QNetworkConfigurationManager>
 #include <QPointer>
+#include <QQueue>
 #include <QSet>
 #include <QStringList>
+#include <QTimer>
 #include <QVector>
 #include <QWaitCondition>
 
@@ -341,6 +343,10 @@ namespace BitTorrent
 
         uint saveResumeDataInterval() const;
         void setSaveResumeDataInterval(uint value);
+        bool isAutoBanUnknownPeerEnabled() const;
+        void setAutoBanUnknownPeer(bool value);
+        bool isShowTrackerAuthWindow() const;
+        void setShowTrackerAuthWindow(bool value);
         int port() const;
         void setPort(int port);
         bool useRandomPort() const;
@@ -365,8 +371,12 @@ namespace BitTorrent
         void setSeedChokingAlgorithm(SeedChokingAlgorithm mode);
         bool isAddTrackersEnabled() const;
         void setAddTrackersEnabled(bool enabled);
+        bool isAutoUpdateTrackersEnabled() const;
+        void setAutoUpdateTrackersEnabled(bool enabled);
         QString additionalTrackers() const;
+        QString publicTrackers() const;
         void setAdditionalTrackers(const QString &trackers);
+        void setPublicTrackers(const QString &trackers);
         bool isIPFilteringEnabled() const;
         void setIPFilteringEnabled(bool enabled);
         QString IPFilterFile() const;
@@ -466,7 +476,24 @@ namespace BitTorrent
         MaxRatioAction maxRatioAction() const;
         void setMaxRatioAction(MaxRatioAction act);
 
+        // Enhanced Function
+        bool m_isActive = false;
+        QQueue<QString> q_bannedIPs;
+        QQueue<int64_t> q_unbanTime;
+        QString m_publicTrackers;
+        QTimer *m_unbanTimer;
+        QTimer *m_banTimer;
+        QTimer *m_updateTimer;
+
+        void autoBanBadClient();
         void banIP(const QString &ip);
+        bool checkAccessFlags(const QString &ip);
+        void eraseIPFilter();
+        void insertQueue(QString ip);
+        void tempblockIP(const QString &ip);
+        void removeBlockedIP(const QString &ip);
+        void unbanIP();
+        void updatePublicTracker();
 
         bool isKnownTorrent(const InfoHash &hash) const;
         bool addTorrent(QString source, const AddTorrentParams &params = AddTorrentParams());
@@ -545,6 +572,9 @@ namespace BitTorrent
         void tagAdded(const QString &tag);
         void tagRemoved(const QString &tag);
 
+    public slots:
+        void processUnbanRequest();
+
     private slots:
         void configureDeferred();
         void readAlerts();
@@ -560,6 +590,10 @@ namespace BitTorrent
         // Session reconfiguration triggers
         void networkOnlineStateChanged(const bool online);
         void networkConfigurationChange(const QNetworkConfiguration&);
+
+        // Public Tracker slot
+        void txtDownloadFinished(const QString &url, const QByteArray &data);
+        void txtDownloadFailed(const QString &url, const QString &error);
 
     private:
         struct RemovingTorrentData
@@ -598,8 +632,11 @@ namespace BitTorrent
         void enableTracker(bool enable);
         void enableBandwidthScheduler();
         void populateAdditionalTrackers();
+        void populatePublicTrackers();
         void enableIPFilter();
         void disableIPFilter();
+        int parseOfflineFilterFile(QString ipDat, libtorrent::ip_filter &filter);
+        void loadOfflineFilter();
 
         bool addTorrent_impl(CreateTorrentParams params, const MagnetUri &magnetUri,
                              TorrentInfo torrentInfo = TorrentInfo(),
@@ -695,6 +732,7 @@ namespace BitTorrent
         CachedSettingValue<MixedModeAlgorithm> m_utpMixedMode;
         CachedSettingValue<bool> m_multiConnectionsPerIpEnabled;
         CachedSettingValue<bool> m_isAddTrackersEnabled;
+        CachedSettingValue<bool> m_isAutoUpdateTrackersEnabled;
         CachedSettingValue<QString> m_additionalTrackers;
         CachedSettingValue<qreal> m_globalMaxRatio;
         CachedSettingValue<int> m_globalMaxSeedingMinutes;
@@ -712,6 +750,8 @@ namespace BitTorrent
         CachedSettingValue<bool> m_isAltGlobalSpeedLimitEnabled;
         CachedSettingValue<bool> m_isBandwidthSchedulerEnabled;
         CachedSettingValue<uint> m_saveResumeDataInterval;
+        CachedSettingValue<bool> m_autoBanUnknownPeer;
+        CachedSettingValue<bool> m_showTrackerAuthWindow;
         CachedSettingValue<int> m_port;
         CachedSettingValue<bool> m_useRandomPort;
         CachedSettingValue<QString> m_networkInterface;
@@ -745,6 +785,7 @@ namespace BitTorrent
         int m_numResumeData;
         int m_extraLimit;
         QList<BitTorrent::TrackerEntry> m_additionalTrackerList;
+        QList<BitTorrent::TrackerEntry> m_publicTrackerList;
         QString m_resumeFolderPath;
         QFile m_resumeFolderLock;
         bool m_useProxy;

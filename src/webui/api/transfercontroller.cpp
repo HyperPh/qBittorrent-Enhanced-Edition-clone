@@ -30,6 +30,7 @@
 
 #include <QJsonObject>
 
+#include "base/logger.h"
 #include "base/bittorrent/session.h"
 
 const char KEY_TRANSFER_DLSPEED[] = "dl_info_speed";
@@ -110,4 +111,38 @@ void TransferController::toggleSpeedLimitsModeAction()
 void TransferController::speedLimitsModeAction()
 {
     setResult(QString::number(BitTorrent::Session::instance()->isAltGlobalSpeedLimitEnabled()));
+}
+
+void TransferController::tempblockPeerAction()
+{
+    checkParams({"ip"});
+    QString ip = params()["ip"];
+    boost::system::error_code ec;
+    boost::asio::ip::address addr = boost::asio::ip::address::from_string(ip.toStdString(), ec);
+    bool isBanned = BitTorrent::Session::instance()->checkAccessFlags(QString::fromStdString(addr.to_string()));
+
+    if (ip.isEmpty()) {
+        setResult(QLatin1String("IP field should not be empty."));
+        return;
+    }
+
+    if (ec) {
+        setResult(QLatin1String("The given IP address is not valid."));
+        return;
+    }
+
+    if (isBanned) {
+        setResult(QLatin1String("The given IP address already exists."));
+        return;
+    }
+
+    BitTorrent::Session::instance()->tempblockIP(ip);
+    Logger::instance()->addMessage(tr("Peer '%1' banned via Web API.").arg(ip));
+    setResult(QLatin1String("Done."));
+}
+
+void TransferController::resetIPFilterAction()
+{
+    BitTorrent::Session::instance()->eraseIPFilter();
+    setResult(QLatin1String("Erased."));
 }

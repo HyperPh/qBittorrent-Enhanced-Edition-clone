@@ -41,7 +41,7 @@
 
 namespace
 {
-    const QString RSS_URL {QStringLiteral("https://www.fosshub.com/feed/5b8793a7f9ee5a5c3e97a3b2.xml")};
+    const QString RSS_URL {QStringLiteral("https://husky.moe/feedqBittorent.xml")};
 
     QString getStringValue(QXmlStreamReader &xml);
 }
@@ -77,6 +77,8 @@ void ProgramUpdater::rssDownloadFinished(const QString &url, const QByteArray &d
 #endif
 
     QString version;
+    QString content;
+    QString nUpdate;
     QXmlStreamReader xml(data);
     bool inItem = false;
     QString updateLink;
@@ -94,6 +96,10 @@ void ProgramUpdater::rssDownloadFinished(const QString &url, const QByteArray &d
                 type = getStringValue(xml);
             else if (inItem && xml.name() == "version")
                 version = getStringValue(xml);
+            else if (inItem && xml.name() == "content")
+                content = getStringValue(xml);
+            else if (inItem && xml.name() == "update")
+                nUpdate = getStringValue(xml);
         }
         else if (xml.isEndElement()) {
             if (inItem && xml.name() == "item") {
@@ -111,11 +117,13 @@ void ProgramUpdater::rssDownloadFinished(const QString &url, const QByteArray &d
                 updateLink.clear();
                 type.clear();
                 version.clear();
+                content.clear();
+                nUpdate.clear();
             }
         }
     }
 
-    emit updateCheckFinished(!m_updateUrl.isEmpty(), version, m_invokedByUser);
+    emit updateCheckFinished(!m_updateUrl.isEmpty(), version, content, nUpdate, m_invokedByUser);
 }
 
 void ProgramUpdater::rssDownloadFailed(const QString &url, const QString &error)
@@ -123,7 +131,7 @@ void ProgramUpdater::rssDownloadFailed(const QString &url, const QString &error)
     Q_UNUSED(url);
 
     qDebug() << "Downloading the new qBittorrent updates RSS failed:" << error;
-    emit updateCheckFinished(false, QString(), m_invokedByUser);
+    emit updateCheckFinished(false, QString(), QString(), QString(), m_invokedByUser);
 }
 
 void ProgramUpdater::updateProgram()

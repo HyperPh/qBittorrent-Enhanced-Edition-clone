@@ -1539,7 +1539,8 @@ void TorrentHandle::handleTrackerErrorAlert(const libtorrent::tracker_error_aler
     m_trackerInfos[trackerUrl].lastMessage = message;
 
     if (p->status_code == 401)
-        m_session->handleTorrentTrackerAuthenticationRequired(this, trackerUrl);
+        if (Preferences::instance()->getShowTrackerAuthWindow())
+            m_session->handleTorrentTrackerAuthenticationRequired(this, trackerUrl);
 
     m_session->handleTorrentTrackerError(this, trackerUrl);
 }

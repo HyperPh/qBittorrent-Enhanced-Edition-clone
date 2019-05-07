@@ -57,6 +57,7 @@
 #include "notifications.h"
 #endif
 
+#include "base/bittorrent/peerinfo.h"
 #include "base/bittorrent/session.h"
 #include "base/bittorrent/sessionstatus.h"
 #include "base/bittorrent/torrenthandle.h"
@@ -156,7 +157,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     Preferences *const pref = Preferences::instance();
     m_uiLocked = pref->isUILocked();
-    setWindowTitle("qBittorrent " QBT_VERSION);
+    setWindowTitle(QString("qBittorrent %1 (Enhanced Edition)").arg(QString::fromUtf8(QBT_VERSION)));
     m_displaySpeedInTitle = pref->speedInTitleBar();
     // Setting icons
 #ifndef Q_OS_MAC
@@ -1587,7 +1588,7 @@ void MainWindow::updateGUI()
 #endif // Q_OS_MAC
 
     if (m_displaySpeedInTitle) {
-        setWindowTitle(tr("[D: %1, U: %2] qBittorrent %3", "D = Download; U = Upload; %3 is qBittorrent version")
+        setWindowTitle(tr("[D: %1, U: %2] qBittorrent %3 (Enhanced Edition)", "D = Download; U = Upload; %3 is qBittorrent version")
             .arg(Utils::Misc::friendlyUnit(status.payloadDownloadRate, true)
                 , Utils::Misc::friendlyUnit(status.payloadUploadRate, true)
                 , QBT_VERSION));
@@ -1769,7 +1770,7 @@ void MainWindow::on_actionSpeedInTitleBar_triggered()
     if (m_displaySpeedInTitle)
         updateGUI();
     else
-        setWindowTitle("qBittorrent " QBT_VERSION);
+        setWindowTitle(QString("qBittorrent %1 (Enhanced Edition)").arg(QString::fromUtf8(QBT_VERSION)));
 }
 
 void MainWindow::on_actionRSSReader_triggered()
@@ -1846,13 +1847,13 @@ void MainWindow::on_actionDownloadFromURL_triggered()
 
 #if defined(Q_OS_WIN) || defined(Q_OS_MAC)
 
-void MainWindow::handleUpdateCheckFinished(bool updateAvailable, QString newVersion, bool invokedByUser)
+void MainWindow::handleUpdateCheckFinished(bool updateAvailable, QString newVersion, QString newContent, QString nextUpdate, bool invokedByUser)
 {
     QMessageBox::StandardButton answer = QMessageBox::Yes;
     if (updateAvailable) {
         answer = QMessageBox::question(this, tr("qBittorrent Update Available")
             , tr("A new version is available.") + "<br/>"
-                + tr("Do you want to download %1?").arg(newVersion) + "<br/><br/>"
+                + tr("Do you want to download %1?\n%2").arg(newVersion).arg(newContent) + "<br/><br/>"
                 + QString("<a href=\"https://www.qbittorrent.org/news.php\">%1</a>").arg(tr("Open changelog..."))
             , QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
         if (answer == QMessageBox::Yes) {
@@ -1863,7 +1864,7 @@ void MainWindow::handleUpdateCheckFinished(bool updateAvailable, QString newVers
     }
     else if (invokedByUser) {
         QMessageBox::information(this, tr("Already Using the Latest qBittorrent Version"),
-                                 tr("No updates available.\nYou are already using the latest version."));
+                                 tr("No updates available.\nYou are already using the latest version.\n%1").arg(nextUpdate));
     }
     sender()->deleteLater();
     m_ui->actionCheckForUpdates->setEnabled(true);
