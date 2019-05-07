@@ -49,9 +49,9 @@ public:
 
         // Title
 #if defined(__x86_64__) || defined(_M_X64)
-        labelName->setText("<b><h2>qBittorrent " QBT_VERSION " (64-bit)</h2></b>");
+        labelName->setText("<b><h2>qBittorrent " QBT_VERSION " (64-bit) (Enhanced Edition)</h2></b>");
 #else
-        labelName->setText("<b><h2>qBittorrent " QBT_VERSION " (32-bit)</h2></b>");
+        labelName->setText("<b><h2>qBittorrent " QBT_VERSION " (32-bit) (Enhanced Edition)</h2></b>");
 #endif
 
         logo->setPixmap(Utils::Gui::scaledPixmapSvg(":/icons/skin/qbittorrent-tray.svg", this, 32));
@@ -65,13 +65,17 @@ public:
             "<tr><td>%3</td><td><a href=\"https://www.qbittorrent.org\">https://www.qbittorrent.org</a></td></tr>"
             "<tr><td>%4</td><td><a href=\"http://forum.qbittorrent.org\">http://forum.qbittorrent.org</a></td></tr>"
             "<tr><td>%5</td><td><a href=\"http://bugs.qbittorrent.org\">http://bugs.qbittorrent.org</a></td></tr>"
+            "<tr><td>%6</td><td><a href=\"https://github.com/c0re100/qBittorrent-Enhanced-Edition\">GitHub Repository</a></td></tr>"
+            "<tr><td>%7</td><td><a href=\"https://t.me/loli_make_the_world_great_again\">Husky</a></td></tr>"
             "</table>"
             "</p>")
             .arg(tr("An advanced BitTorrent client programmed in C++, based on Qt toolkit and libtorrent-rasterbar.")
                 , tr("Copyright %1 2006-2019 The qBittorrent project").arg(QString::fromUtf8(C_COPYRIGHT))
                 , tr("Home Page:")
                 , tr("Forum:")
-                , tr("Bug Tracker:"));
+                , tr("Bug Tracker:")
+                , tr("Enhanced Edition:")
+                , tr("Maintainer:"));
         labelAbout->setText(aboutText);
 
         labelMascot->setPixmap(Utils::Gui::scaledPixmap(":/icons/skin/mascot.png", this));
