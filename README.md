@@ -1,9 +1,5 @@
 qBittorrent - A BitTorrent client in Qt
 ------------------------------------------
-
-[![TravisCI Status](https://travis-ci.org/qbittorrent/qBittorrent.svg?branch=master)](https://travis-ci.org/qbittorrent/qBittorrent)
-[![AppVeyor Status](https://ci.appveyor.com/api/projects/status/github/qbittorrent/qBittorrent?branch=master&svg=true)](https://ci.appveyor.com/project/qbittorrent/qBittorrent)
-[![Coverity Status](https://scan.coverity.com/projects/5494/badge.svg)](https://scan.coverity.com/projects/5494)
 ********************************
 ### Description:
 qBittorrent is a bittorrent client programmed in C++ / Qt that uses
@@ -27,16 +23,30 @@ qbittorrent
 
 will install and execute qBittorrent hopefully without any problem.
 
-## Homebrew
+## Repository
+
+### Arch Linux (Maintainer: [c0re100](https://github.com/c0re100))
+
+[AUR](https://aur.archlinux.org/packages/qbittorrent-enhanced-git/)
+
+[nox AUR](https://aur.archlinux.org/packages/qbittorrent-enhanced-nox-git/)
+
+### Debian (Maintainer: [yangfl](https://github.com/yangfl))
+
+[repo](https://repo.debiancn.org/pool/main/q/qbittorrent-enhanced/)
+
+### openSUSE/RPM-based Linux distro (Maintainer: [PhoenixEmik](https://github.com/PhoenixEmik))
+
+[openSUSE repo](https://build.opensuse.org/package/show/home:PhoenixEmik/qbittorrent-enhanced-edition)
+
+### Ubuntu (Maintainer: [poplite](https://github.com/poplite))
+
+[PPA](https://launchpad.net/~poplite/+archive/ubuntu/qbittorrent-enhanced)
+
+### macOS (Homebrew) (Maintainer: [AlexaraWu](https://github.com/AlexaraWu))
 ```
 brew cask install c0re100-qbittorrent
 ```
-
-### Public key:
-Starting from v3.3.4 all source tarballs and binaries are signed.<br />
-The key currently used is 4096R/[5B7CC9A2](https://pgp.mit.edu/pks/lookup?op=get&search=0x6E4A2D025B7CC9A2) with fingerprint `D8F3DA77AAC6741053599C136E4A2D025B7CC9A2`.<br />
-You can also download it from [here](https://github.com/qbittorrent/qBittorrent/raw/master/5B7CC9A2.asc).<br />
-**PREVIOUSLY** the following key was used to sign the v3.3.4 source tarballs and v3.3.4 Windows installer **only**: 4096R/[520EC6F6](https://pgp.mit.edu/pks/lookup?op=get&search=0xA1ACCAE4520EC6F6) with fingerprint `F4A5FD201B117B1C2AB590E2A1ACCAE4520EC6F6`.<br />
 
 ### Misc:
 For more information please visit:
@@ -51,8 +61,6 @@ http://forum.qbittorrent.org
 Please report any bug (or feature request) to:
 http://bugs.qbittorrent.org
 
-You can also meet me (sledgehammer_999) on IRC:
-`#qbittorrent on irc.freenode.net`
+For extra features bug(such as Auto Ban, API, Auto Update Trackerr lists...), please report to: 
+https://github.com/c0re100/qBittorrent-Enhanced-Edition/issues
 
-------------------------------------------
-sledgehammer999 <sledgehammer999@qbittorrent.org>
