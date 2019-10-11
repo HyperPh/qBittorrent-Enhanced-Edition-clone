@@ -1,5 +1,19 @@
-qBittorrent - A BitTorrent client in Qt
+qBittorrent Enhanced Edition
 ------------------------------------------
+# Features: 
+1. Auto Ban Xunlei, QQ, Baidu, Xfplay, DLBT and Offline downloader
+
+2. [Temporary IP Filter API for advanced user](https://github.com/c0re100/qBittorrent-EE-API)
+
+3. Logging Failed WebUI/API Login Attempts
+
+4. Update MessageBox with changelog if NEW version is available
+
+5. _Auto Ban Unknown Peer from China_ Option(Default: OFF)
+
+6. Show Tracker Authentication Window(Default: ON)
+
+7. Auto Update Public Trackers List(Default: OFF)**
 ********************************
 ### Description:
 qBittorrent is a bittorrent client programmed in C++ / Qt that uses
