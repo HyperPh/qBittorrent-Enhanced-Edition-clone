@@ -30,9 +30,11 @@
 #include <cstdlib>
 
 #include <QDebug>
+#include <QProcess>
 #include <QScopedPointer>
 #include <QString>
 #include <QStringList>
+#include <QTextCodec>
 #include <QThread>
 
 #ifndef DISABLE_GUI
@@ -41,10 +43,8 @@
 #include <QMessageBox>
 #include <QPainter>
 #include <QPen>
-#include <QProcess>
 #include <QPushButton>
 #include <QSplashScreen>
-#include <QTextCodec>
 
 #ifdef QBT_STATIC_QT
 #include <QtPlugin>
