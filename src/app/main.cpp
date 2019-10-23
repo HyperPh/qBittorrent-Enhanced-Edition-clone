@@ -243,66 +243,65 @@ int main(int argc, char *argv[])
         // Check if qBittorrent is already running for this configuration
         if (app->isRunning()) {
             qDebug("qBittorrent is already running for this user, trying to open new qBt instance.");
-        }
 
-        bool isRunning = false;
-        QStringList qBitList;
-        QRegExp arg("--configuration=(.+)");
+            QThread::msleep(300);
+            bool isRunning = false;
+            QStringList qBitList;
+            QRegExp arg("--configuration=(.+)");
 
-        QProcess process;
-        process.setReadChannel(QProcess::StandardOutput);
-        process.setProcessChannelMode(QProcess::MergedChannels);
+            QProcess process;
+            process.setReadChannel(QProcess::StandardOutput);
+            process.setProcessChannelMode(QProcess::MergedChannels);
 
-#if defined(Q_OS_WIN)
-        process.start("wmic /OUTPUT:STDOUT process where \"name like '%qbittorrent%'\" get ProcessID /format:list"); // use wmic to get qbittorrent process id
-        process.waitForFinished();
-
-        QString list = QString(process.readAll());
-        QRegExp winArg("--configuration=\"([^\"]*)\"");
-        QStringList pidList = list.remove("ProcessId=").split("\r\r\n");
-        pidList.removeAll(QString(""));
-
-        foreach (QString pid, pidList) {
-            if (QString::number(app->applicationPid()) == pid) continue;
-            process.start("wmic /OUTPUT:STDOUT process where handle='"+pid+"' get CommandLine /format:list"); // use wmic to get qbittorrent command line
+    #if defined(Q_OS_WIN)
+            process.start("wmic /OUTPUT:STDOUT process where \"name like '%qbittorrent%'\" get ProcessID /format:list"); // use wmic to get qbittorrent process id
             process.waitForFinished();
-            qBitList.append(QString(process.readAll()).remove("CommandLine=").remove("\r\r\n"));
-        }
-#else
-        process.start("sh", QStringList() << "-c" << "ps -ax | grep '[q]bittorrent' | awk '{ print $1 }'");
-        process.waitForFinished();
 
-        QString list = QString(process.readAll());
-        QStringList pidList = list.split("\n");
-        pidList.removeLast(); // remove empty line
+            QString list = QString(process.readAll());
+            QRegExp winArg("--configuration=\"([^\"]*)\"");
+            QStringList pidList = list.remove("ProcessId=").split("\r\r\n");
+            pidList.removeAll(QString(""));
 
-        foreach (QString pid, pidList) {
-            if (QString::number(app->applicationPid()) == pid) continue;
-            #if defined(Q_OS_MAC)
-                QString args = get_process_arguments(pid.toInt());
-                qBitList.append(args);
-            #else
-                process.start("sh", QStringList() << "-c" << "cat -v /proc/"+pid+"/cmdline");
+            foreach (QString pid, pidList) {
+                if (QString::number(app->applicationPid()) == pid) continue;
+                process.start("wmic /OUTPUT:STDOUT process where handle='"+pid+"' get CommandLine /format:list"); // use wmic to get qbittorrent command line
                 process.waitForFinished();
-                qBitList.append(QString(process.readAll()));
-            #endif
-        }
-#endif
-
-        // Check configuration name first if the system is Windows
-#if defined(Q_OS_WIN)
-        process.start("wmic /OUTPUT:STDOUT process where handle='"+QString::number(app->applicationPid())+"' get CommandLine /format:list"); // use wmic to get qbittorrent command line
-        process.waitForFinished();
-        QString cmd = QString(process.readAll());
-        if (cmd.contains("configuration=")) {
-            arg.indexIn(cmd);
-            if (arg.cap(1).at(0) != '"') {
-                throw CommandLineParameterError(QObject::tr("configuration name must be included with \"\""));
+                qBitList.append(QString(process.readAll()).remove("CommandLine=").remove("\r\r\n"));
             }
-        }
-#endif
+    #else
+            process.start("sh", QStringList() << "-c" << "ps -ax | grep '[q]bittorrent' | awk '{ print $1 }'");
+            process.waitForFinished();
 
-        if (qBitList.length() > 0) {
+            QString list = QString(process.readAll());
+            QStringList pidList = list.split("\n");
+            pidList.removeLast(); // remove empty line
+
+            foreach (QString pid, pidList) {
+                if (QString::number(app->applicationPid()) == pid) continue;
+                #if defined(Q_OS_MAC)
+                    QString args = get_process_arguments(pid.toInt());
+                    qBitList.append(args);
+                #else
+                    process.start("sh", QStringList() << "-c" << "cat -v /proc/"+pid+"/cmdline");
+                    process.waitForFinished();
+                    qBitList.append(QString(process.readAll()));
+                #endif
+            }
+    #endif
+
+            // Check configuration name first if the system is Windows
+    #if defined(Q_OS_WIN)
+            process.start("wmic /OUTPUT:STDOUT process where handle='"+QString::number(app->applicationPid())+"' get CommandLine /format:list"); // use wmic to get qbittorrent command line
+            process.waitForFinished();
+            QString cmd = QString(process.readAll());
+            if (cmd.contains("configuration=")) {
+                arg.indexIn(cmd);
+                if (arg.cap(1).at(0) != '"') {
+                    throw CommandLineParameterError(QObject::tr("configuration name must be included with \"\""));
+                }
+            }
+    #endif
+
             foreach (QString qb, qBitList) {
                 arg.indexIn(qb);
                 QString cfgArg = arg.cap(1);
@@ -324,18 +323,17 @@ int main(int argc, char *argv[])
                 } else {
                     if (params.configurationName == "") {
                         isRunning = true;
-                        app->sendParams(params.paramList());
                     }
                 }
             }
-        } else {
+
             if (params.configurationName == "") {
                 app->sendParams(params.paramList());
             }
-        }
 
-        if (isRunning) {
-            return EXIT_SUCCESS;
+            if (isRunning) {
+                return EXIT_SUCCESS;
+            }
         }
 
 #if defined(Q_OS_WIN)
