@@ -50,8 +50,12 @@ qreal Utils::Gui::screenScalingFactor(const QWidget *widget)
         return 1;
 
 #ifdef Q_OS_WIN
-    const int screen = qApp->desktop()->screenNumber(widget);
-    return (QApplication::screens()[screen]->logicalDotsPerInch() / 96);
+    const int screenNumber = qApp->desktop()->screenNumber(widget);
+    const QScreen *screen = QApplication::screens()[screenNumber];
+    // Workaround for QScreen::physicalDotsPerInch() that could return
+    // values that are smaller than the normal 96 DPI on Windows
+    const qreal physicalDPI = qMax<qreal>(screen->physicalDotsPerInch(), 96);
+    return (screen->logicalDotsPerInch() / physicalDPI);
 #elif defined(Q_OS_MAC)
     return 1;
 #else
