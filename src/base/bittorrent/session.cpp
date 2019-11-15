@@ -2033,7 +2033,7 @@ void Session::autoBanBadClient()
 
 void Session::updatePublicTracker()
 {
-    Net::DownloadHandler *handler = Net::DownloadManager::instance()->download({"https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt"});
+    Net::DownloadHandler *handler = Net::DownloadManager::instance()->download({"https://cdn.jsdelivr.net/gh/ngosang/trackerslist/trackers_best.txt"});
     connect(handler, SIGNAL(downloadFinished(QString,QByteArray)), SLOT(txtDownloadFinished(QString,QByteArray)));
     connect(handler, SIGNAL(downloadFailed(QString,QString)), SLOT(txtDownloadFailed(QString,QString)));
 }
