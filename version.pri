@@ -5,7 +5,7 @@ PROJECT_NAME = qbittorrent
 VER_MAJOR = 4
 VER_MINOR = 1
 VER_BUGFIX = 9
-VER_BUILD = 1
+VER_BUILD = 2
 VER_STATUS = # Should be empty for stable releases!
 
 # Don't touch the rest part
@@ -24,3 +24,4 @@ DEFINES += QBT_VERSION_BUILD=$${VER_BUILD}
 
 DEFINES += QBT_VERSION=\\\"v$${PROJECT_VERSION}\\\"
 DEFINES += QBT_VERSION_2=\\\"$${PROJECT_VERSION}\\\"
+DEFINES += ENH_VERSION=\\\"$${VER_MAJOR}.$${VER_MINOR}.$${VER_BUGFIX}\\\"
