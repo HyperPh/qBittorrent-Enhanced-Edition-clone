@@ -14,6 +14,8 @@ qBittorrent Enhanced Edition
 6. Show Tracker Authentication Window(Default: ON)
 
 7. Auto Update Public Trackers List(Default: OFF)**
+
+8. Multiple qBittorrent instances
 ********************************
 ### Description:
 qBittorrent is a bittorrent client programmed in C++ / Qt that uses
