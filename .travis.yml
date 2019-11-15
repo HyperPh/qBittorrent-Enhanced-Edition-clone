@@ -37,6 +37,8 @@ script:
 - '[ -x "/tmp/linuxdeploy-plugin-qt-x86_64.AppImage" ] || curl -LC- -o /tmp/linuxdeploy-plugin-qt-x86_64.AppImage https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage'
 - chmod +x '/tmp/linuxdeploy-plugin-qt-x86_64.AppImage'
 - cd "/tmp/qbee"
+- mkdir -p "/tmp/qbee/AppDir/apprun-hooks/"
+- echo 'export XDG_DATA_DIRS="${APPDIR:-"$(dirname "${BASH_SOURCE[0]}")/.."}/usr/share:${XDG_DATA_DIRS}:/usr/share:/usr/local/share"' > "/tmp/qbee/AppDir/apprun-hooks/xdg_data_dirs.sh"
 - UPDATE_INFORMATION="zsync|https://github.com/${TRAVIS_REPO_SLUG}/releases/latest/download/qBittorrent-Enhanced-Edition.AppImage.zsync" OUTPUT='qBittorrent-Enhanced-Edition.AppImage' /tmp/linuxdeploy-x86_64.AppImage --appdir="/tmp/qbee/AppDir" --output=appimage --plugin qt
 
 deploy:

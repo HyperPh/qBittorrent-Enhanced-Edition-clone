@@ -39,6 +39,10 @@ will install and execute qBittorrent hopefully without any problem.
 
 ## Repository
 
+If you are using a desktop Linux distribution without any special demands, you can use AppImage from release page.
+
+Latest AppImage download: [qBittorrent-Enhanced-Edition.AppImage](https://github.com/c0re100/qBittorrent-Enhanced-Edition/releases/latest/download/qBittorrent-Enhanced-Edition.AppImage)
+
 ### Arch Linux (Maintainer: [c0re100](https://github.com/c0re100))
 
 [AUR](https://aur.archlinux.org/packages/qbittorrent-enhanced-git/)
