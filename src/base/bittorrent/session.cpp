@@ -4285,9 +4285,7 @@ void Session::loadOfflineFilter() {
 
 #if defined(Q_OS_WIN)
     Count = parseOfflineFilterFile("./ipfilter.dat", offlineFilter);
-#endif
-
-#if (defined(Q_OS_UNIX) && !defined(Q_OS_MAC))
+#else
     Count = parseOfflineFilterFile(QDir::home().absoluteFilePath(".config")+"/qBittorrent/ipfilter.dat", offlineFilter);
 #endif
 
