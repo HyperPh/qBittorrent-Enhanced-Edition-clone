@@ -2131,7 +2131,7 @@
              <x>0</x>
              <y>0</y>
              <width>456</width>
-             <height>912</height>
+             <height>938</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_7">
@@ -2698,7 +2698,7 @@
                <property name="bottomMargin">
                 <number>9</number>
                </property>
-               <item row="0" column="0">
+               <item row="1" column="0">
                 <widget class="QPlainTextEdit" name="textPublicTrackers">
                  <property name="enabled">
                   <bool>true</bool>
@@ -2711,6 +2711,22 @@
                  </property>
                  <property name="readOnly">
                   <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLineEdit" name="textCustomizeTrackersListUrl">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt</string>
+                 </property>
+                 <property name="readOnly">
+                  <bool>false</bool>
+                 </property>
+                 <property name="cursorMoveStyle">
+                  <enum>Qt::LogicalMoveStyle</enum>
                  </property>
                 </widget>
                </item>
@@ -2935,7 +2951,7 @@
            <property name="geometry">
             <rect>
              <x>0</x>
-             <y>0</y>
+             <y>-161</y>
              <width>456</width>
              <height>703</height>
             </rect>

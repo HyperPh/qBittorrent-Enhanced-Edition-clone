@@ -1110,6 +1110,16 @@ void Preferences::setShowTrackerAuthWindow(const bool checked)
     setValue("Preferences/Advanced/ShowTrackerAuthWindow", checked);
 }
 
+QString Preferences::customizeTrackersListUrl() const
+{
+    return value("Preferences/Bittorrent/CustomizeTrackersListUrl", "https://cdn.jsdelivr.net/gh/ngosang/trackerslist/trackers_best.txt").toString();
+}
+
+void Preferences::setCustomizeTrackersListUrl(const QString &trackersUrl)
+{
+    setValue("Preferences/Bittorrent/CustomizeTrackersListUrl", trackersUrl);
+}
+
 // Stuff that don't appear in the Options GUI but are saved
 // in the same file.
 

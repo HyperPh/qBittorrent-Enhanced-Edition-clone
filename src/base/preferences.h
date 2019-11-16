@@ -304,6 +304,8 @@ public:
     void setAutoBanUnknownPeer(const bool checked);
     bool getShowTrackerAuthWindow() const;
     void setShowTrackerAuthWindow(const bool checked);
+    QString customizeTrackersListUrl() const;
+    void setCustomizeTrackersListUrl(const QString &trackersUrl);
 
     // Stuff that don't appear in the Options GUI but are saved
     // in the same file.

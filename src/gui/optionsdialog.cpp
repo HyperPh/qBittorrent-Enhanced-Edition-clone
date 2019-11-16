@@ -380,6 +380,7 @@ OptionsDialog::OptionsDialog(QWidget *parent)
     connect(m_ui->checkEnableAddTrackers, &QGroupBox::toggled, this, &ThisType::enableApplyButton);
     connect(m_ui->textTrackers, &QPlainTextEdit::textChanged, this, &ThisType::enableApplyButton);
     connect(m_ui->checkAutoUpdateTrackers, &QGroupBox::toggled, this, &ThisType::enableApplyButton);
+    connect(m_ui->textCustomizeTrackersListUrl, &QLineEdit::textChanged, this, &ThisType::enableApplyButton);
 
     const QString slowTorrentsExplanation = QLatin1String("<html><body><p>")
             + tr("A torrent will be considered slow if its download and upload rates stay below these values for \"Torrent inactivity timer\" seconds")
@@ -694,6 +695,7 @@ void OptionsDialog::saveOptions()
     session->setAddTrackersEnabled(m_ui->checkEnableAddTrackers->isChecked());
     session->setAdditionalTrackers(m_ui->textTrackers->toPlainText());
     session->setAutoUpdateTrackersEnabled(m_ui->checkAutoUpdateTrackers->isChecked());
+    pref->setCustomizeTrackersListUrl(m_ui->textCustomizeTrackersListUrl->text());
     session->setGlobalMaxRatio(getMaxRatio());
     session->setGlobalMaxSeedingMinutes(getMaxSeedingMinutes());
     session->setMaxRatioAction(static_cast<MaxRatioAction>(m_ui->comboRatioLimitAct->currentIndex()));
@@ -1046,6 +1048,7 @@ void OptionsDialog::loadOptions()
     m_ui->checkEnableAddTrackers->setChecked(session->isAddTrackersEnabled());
     m_ui->textTrackers->setPlainText(session->additionalTrackers());
     m_ui->checkAutoUpdateTrackers->setChecked(session->isAutoUpdateTrackersEnabled());
+    m_ui->textCustomizeTrackersListUrl->setText(pref->customizeTrackersListUrl());
     m_ui->textPublicTrackers->setPlainText(session->publicTrackers());
 
     m_ui->checkEnableQueueing->setChecked(session->isQueueingSystemEnabled());

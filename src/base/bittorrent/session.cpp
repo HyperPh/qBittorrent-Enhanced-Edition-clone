@@ -87,6 +87,7 @@
 #include "base/utils/net.h"
 #include "base/utils/random.h"
 #include "base/utils/string.h"
+#include "base/preferences.h"
 #include "magneturi.h"
 #include "private/bandwidthscheduler.h"
 #include "private/filterparserthread.h"
@@ -2033,7 +2034,8 @@ void Session::autoBanBadClient()
 
 void Session::updatePublicTracker()
 {
-    Net::DownloadHandler *handler = Net::DownloadManager::instance()->download({"https://cdn.jsdelivr.net/gh/ngosang/trackerslist/trackers_best.txt"});
+    Preferences *const pref = Preferences::instance();
+    Net::DownloadHandler *handler = Net::DownloadManager::instance()->download({pref->customizeTrackersListUrl()});
     connect(handler, SIGNAL(downloadFinished(QString,QByteArray)), SLOT(txtDownloadFinished(QString,QByteArray)));
     connect(handler, SIGNAL(downloadFailed(QString,QString)), SLOT(txtDownloadFailed(QString,QString)));
 }
