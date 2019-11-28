@@ -6,7 +6,7 @@ addons:
   apt:
     sources:
     - sourceline: 'ppa:mhier/libboost-latest'
-    - sourceline: 'ppa:beineri/opt-qt-5.12.3-xenial'
+    - sourceline: 'ppa:beineri/opt-qt-5.12.6-xenial'
     packages:
     - qt512base
     - qt512svg
