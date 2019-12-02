@@ -201,6 +201,7 @@ void AppController::preferencesAction()
     data["add_trackers_enabled"] = session->isAddTrackersEnabled();
     data["add_trackers"] = session->additionalTrackers();
     data["auto_update_trackers_enabled"] = session->isAutoUpdateTrackersEnabled();
+    data["customize_trackers_list_url"] = pref->customizeTrackersListUrl();
     data["public_trackers"] = session->publicTrackers();
 
     // Web UI
@@ -483,6 +484,8 @@ void AppController::setPreferencesAction()
     session->setAddTrackersEnabled(m["add_trackers_enabled"].toBool());
     session->setAdditionalTrackers(m["add_trackers"].toString());
     session->setAutoUpdateTrackersEnabled(m["auto_update_trackers_enabled"].toBool());
+    if (m.contains("customize_trackers_list_url"))
+        pref->setCustomizeTrackersListUrl(m["customize_trackers_list_url"].toString());
 
     // Web UI
     // Language
