@@ -108,7 +108,7 @@ using NETIO_STATUS = LONG;
 
 static const char PEER_ID[] = "qB";
 static const char RESUME_FOLDER[] = "BT_backup";
-static const char USER_AGENT[] = "qBittorrent/" ENH_VERSION;
+static const char USER_AGENT[] = "qBittorrent Enhanced/" QBT_VERSION_2;
 
 namespace libt = libtorrent;
 using namespace BitTorrent;
