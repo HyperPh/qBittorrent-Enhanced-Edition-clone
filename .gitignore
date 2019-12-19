@@ -40,3 +40,5 @@ src/icons/skin/build-icons/icons/*.png
 # Web UI tools
 node_modules
 package-lock.json
+
+/dist/*

@@ -68,6 +68,7 @@ namespace
     const char KEY_PEER_FILES[] = "files";
     const char KEY_PEER_FLAGS[] = "flags";
     const char KEY_PEER_FLAGS_DESCRIPTION[] = "flags_desc";
+    const char KEY_PEER_ID[] = "peer_id";
     const char KEY_PEER_IP[] = "ip";
     const char KEY_PEER_PORT[] = "port";
     const char KEY_PEER_PROGRESS[] = "progress";
@@ -508,6 +509,7 @@ void SyncController::torrentPeersAction()
             {KEY_PEER_IP, pi.address().ip.toString()},
             {KEY_PEER_PORT, pi.address().port},
             {KEY_PEER_CLIENT, pi.client()},
+            {KEY_PEER_ID, pi.pid().left(8)},
             {KEY_PEER_PROGRESS, pi.progress()},
             {KEY_PEER_DOWN_SPEED, pi.payloadDownSpeed()},
             {KEY_PEER_UP_SPEED, pi.payloadUpSpeed()},

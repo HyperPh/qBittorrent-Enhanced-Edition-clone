@@ -73,6 +73,7 @@ enum AdvSettingsRows
     SAVE_RESUME_DATA_INTERVAL,
     CONFIRM_RECHECK_TORRENT,
     RECHECK_COMPLETED,
+    CONFIRM_AUTO_BAN,
     // UI related
     LIST_REFRESH,
     RESOLVE_HOSTS,
@@ -239,6 +240,9 @@ void AdvancedSettings::saveAdvancedSettings()
     // Announce IP
     QHostAddress addr(m_lineEditAnnounceIP.text().trimmed());
     session->setAnnounceIP(addr.isNull() ? "" : addr.toString());
+
+    // Auto ban Unknown Peer
+    session->setAutoBanUnknownPeer(m_autoBanUnknownPeer.isChecked());
 
     // Program notification
     MainWindow *const mainWindow = static_cast<Application*>(QCoreApplication::instance())->mainWindow();
@@ -530,6 +534,9 @@ void AdvancedSettings::loadAdvancedSettings()
     // Announce IP
     m_lineEditAnnounceIP.setText(session->announceIP());
     addRow(ANNOUNCE_IP, tr("IP Address to report to trackers (requires restart)"), &m_lineEditAnnounceIP);
+    // Auto Ban Unknown Peer from China
+    m_autoBanUnknownPeer.setChecked(session->isAutoBanUnknownPeerEnabled());
+    addRow(CONFIRM_AUTO_BAN, tr("Auto Ban Unknown Peer from China"), &m_autoBanUnknownPeer);
 
     // Program notifications
     const MainWindow *const mainWindow = static_cast<Application*>(QCoreApplication::instance())->mainWindow();

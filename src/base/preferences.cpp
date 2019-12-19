@@ -1492,6 +1492,26 @@ void Preferences::setSpeedWidgetGraphEnable(const int id, const bool enable)
     setValue("SpeedWidget/graph_enable_" + QString::number(id), enable);
 }
 
+bool Preferences::getAutoBanUnknownPeer() const
+{
+    return value("Preferences/Advanced/AutoBanUnknownPeer", false).toBool();
+}
+
+void Preferences::setAutoBanUnknownPeer(const bool checked)
+{
+    setValue("Preferences/Advanced/AutoBanUnknownPeer", checked);
+}
+
+QString Preferences::customizeTrackersListUrl() const
+{
+    return value("Preferences/Bittorrent/CustomizeTrackersListUrl", "https://cdn.jsdelivr.net/gh/ngosang/trackerslist/trackers_best.txt").toString();
+}
+
+void Preferences::setCustomizeTrackersListUrl(const QString &trackersUrl)
+{
+    setValue("Preferences/Bittorrent/CustomizeTrackersListUrl", trackersUrl);
+}
+
 void Preferences::apply()
 {
     if (SettingsStorage::instance()->save())

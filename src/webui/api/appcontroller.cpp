@@ -166,6 +166,7 @@ void AppController::preferencesAction()
     data["ip_filter_path"] = Utils::Fs::toNativePath(session->IPFilterFile());
     data["ip_filter_trackers"] = session->isTrackerFilteringEnabled();
     data["banned_IPs"] = session->bannedIPs().join("\n");
+    data["auto_ban_unknown_peer"] = session->isAutoBanUnknownPeerEnabled();
 
     // Speed
     // Global Rate Limits
@@ -212,6 +213,9 @@ void AppController::preferencesAction()
     // Add trackers
     data["add_trackers_enabled"] = session->isAddTrackersEnabled();
     data["add_trackers"] = session->additionalTrackers();
+    data["auto_update_trackers_enabled"] = session->isAutoUpdateTrackersEnabled();
+    data["customize_trackers_list_url"] = pref->customizeTrackersListUrl();
+    data["public_trackers"] = session->publicTrackers();
 
     // Web UI
     // Language
@@ -476,6 +480,8 @@ void AppController::setPreferencesAction()
         session->setTrackerFilteringEnabled(it.value().toBool());
     if (hasKey("banned_IPs"))
         session->setBannedIPs(it.value().toString().split('\n'));
+    if (hasKey("auto_ban_unknown_peer"))
+        session->setAutoBanUnknownPeer(it.value().toBool());
 
     // Speed
     // Global Rate Limits
@@ -552,6 +558,9 @@ void AppController::setPreferencesAction()
     // Add trackers
     session->setAddTrackersEnabled(m["add_trackers_enabled"].toBool());
     session->setAdditionalTrackers(m["add_trackers"].toString());
+    session->setAutoUpdateTrackersEnabled(m["auto_update_trackers_enabled"].toBool());
+    if (m.contains("customize_trackers_list_url"))
+        pref->setCustomizeTrackersListUrl(m["customize_trackers_list_url"].toString());
 
     // Web UI
     // Language

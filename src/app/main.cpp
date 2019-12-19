@@ -43,6 +43,10 @@
 #endif
 
 #include <QDebug>
+#include <QProcess>
+#include <QString>
+#include <QStringList>
+#include <QTextCodec>
 #include <QThread>
 
 #ifndef DISABLE_GUI
@@ -83,6 +87,17 @@ Q_IMPORT_PLUGIN(QICOPlugin)
 #include "cmdoptions.h"
 #include "upgrade.h"
 
+#if defined(Q_OS_MAC)
+#include <sys/sysctl.h>
+#include <iostream>
+#include <sstream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <iterator>
+#include <cassert>
+#endif
+
 #ifndef DISABLE_GUI
 #include "gui/utils.h"
 #endif
@@ -121,6 +136,63 @@ void showSplashScreen();
 
 #if defined(Q_OS_UNIX)
 void adjustFileDescriptorLimit();
+#endif
+
+#if defined(Q_OS_MAC)
+/// code from https://gist.github.com/konstantinwirz/5450970
+/// returns the maximum size of argument in bytes
+/// returns 0 if failed
+unsigned int get_max_arguments_size() {
+    int mib[2] = {CTL_KERN, KERN_ARGMAX};
+    unsigned int result = 0;
+    std::size_t size =  sizeof(result);
+    if(sysctl(mib, 2, &result, &size, nullptr, 0) == -1)
+        perror("sysctl");
+    return result;
+}
+
+/// returns the command line arguments of a process with given pid
+/// if failed - returns an empty vector
+QString get_process_arguments(pid_t pid) {
+    std::vector<std::string> arguments;
+    int mib[3] = {CTL_KERN, KERN_PROCARGS2, pid};
+    size_t max_arguments_number = get_max_arguments_size();
+    assert(max_arguments_number);
+    char *buffer = new char[max_arguments_number];
+    assert(buffer);
+
+    if (sysctl(mib, 3, buffer, &max_arguments_number, nullptr, 0) == -1) {
+        perror("sysctl");
+    } else {
+        // first element in buffer is argc
+        const int real_arguments_number = static_cast<int>(*buffer);
+        std::string word;
+        // elements are '\0' separated
+        for(int i=0; i<max_arguments_number; ++i) {
+            if(isprint(buffer[i])) {
+                word.push_back(buffer[i]);
+            } else {
+                if(!word.empty()) {
+                    arguments.push_back(word);
+                    word.clear();
+                }
+            }
+        }
+        // first arg is exec_path - skip it
+        // we need the next real_arguments_number arguments
+        if(arguments.size()>=real_arguments_number+1) {
+            arguments = std::vector<std::string>(arguments.begin() + 1,
+                                                 arguments.begin() + 1 + real_arguments_number);
+        } else { // something is wrong(not enough elements in vector) - clear it
+            arguments.clear();
+        }
+    }
+
+    std::ostringstream args;
+    std::copy(arguments.begin(), arguments.end(), std::ostream_iterator<std::string>(args, "^@"));
+
+    return QString::fromStdString(args.str());
+}
 #endif
 
 // Main
@@ -187,19 +259,98 @@ int main(int argc, char *argv[])
 
         // Check if qBittorrent is already running for this user
         if (app->isRunning()) {
-#if defined(DISABLE_GUI) && !defined(Q_OS_WIN)
-            if (params.shouldDaemonize) {
-                throw CommandLineParameterError(QObject::tr("You cannot use %1: qBittorrent is already running for this user.")
-                                     .arg(QLatin1String("-d (or --daemon)")));
-            }
-            else
-#endif
-            qDebug("qBittorrent is already running for this user.");
+            qDebug("qBittorrent is already running for this user, trying to open new qBt instance.");
 
             QThread::msleep(300);
-            app->sendParams(params.paramList());
+            bool isRunning = false;
+            QStringList qBitList;
+            QRegExp arg("--configuration=(.+)");
 
-            return EXIT_SUCCESS;
+            QProcess process;
+            process.setReadChannel(QProcess::StandardOutput);
+            process.setProcessChannelMode(QProcess::MergedChannels);
+
+    #if defined(Q_OS_WIN)
+            process.start("wmic /OUTPUT:STDOUT process where \"name like '%qbittorrent%'\" get ProcessID /format:list"); // use wmic to get qbittorrent process id
+            process.waitForFinished();
+
+            QString list = QString(process.readAll());
+            QRegExp winArg("--configuration=\"([^\"]*)\"");
+            QStringList pidList = list.remove("ProcessId=").split("\r\r\n");
+            pidList.removeAll(QString(""));
+
+            foreach (QString pid, pidList) {
+                if (QString::number(app->applicationPid()) == pid) continue;
+                process.start("wmic /OUTPUT:STDOUT process where handle='"+pid+"' get CommandLine /format:list"); // use wmic to get qbittorrent command line
+                process.waitForFinished();
+                qBitList.append(QString(process.readAll()).remove("CommandLine=").remove("\r\r\n"));
+            }
+    #else
+            process.start("sh", QStringList() << "-c" << "ps -ax | grep '[q]bittorrent' | awk '{ print $1 }'");
+            process.waitForFinished();
+
+            QString list = QString(process.readAll());
+            QStringList pidList = list.split("\n");
+            pidList.removeLast(); // remove empty line
+
+            foreach (QString pid, pidList) {
+                if (QString::number(app->applicationPid()) == pid) continue;
+                #if defined(Q_OS_MAC)
+                    QString args = get_process_arguments(pid.toInt());
+                    qBitList.append(args);
+                #else
+                    process.start("sh", QStringList() << "-c" << "cat -v /proc/"+pid+"/cmdline");
+                    process.waitForFinished();
+                    qBitList.append(QString(process.readAll()));
+                #endif
+            }
+    #endif
+
+            // Check configuration name first if the system is Windows
+    #if defined(Q_OS_WIN)
+            process.start("wmic /OUTPUT:STDOUT process where handle='"+QString::number(app->applicationPid())+"' get CommandLine /format:list"); // use wmic to get qbittorrent command line
+            process.waitForFinished();
+            QString cmd = QString(process.readAll());
+            if (cmd.contains("configuration=")) {
+                arg.indexIn(cmd);
+                if (arg.cap(1).at(0) != '"') {
+                    throw CommandLineParameterError(QObject::tr("configuration name must be included with \"\""));
+                }
+            }
+    #endif
+
+            foreach (QString qb, qBitList) {
+                arg.indexIn(qb);
+                QString cfgArg = arg.cap(1);
+                if (cfgArg != "") {
+    #if defined(Q_OS_WIN)
+                        if (cfgArg.at(0) != '"') {
+                            throw CommandLineParameterError(QObject::tr("configuration name must be included with \"\""));
+                        } else {
+                            winArg.indexIn(qb);
+                            cfgArg = winArg.cap(1);
+                        }
+    #endif
+                    if (cfgArg.indexOf("^@") != -1) {
+                        cfgArg.remove(cfgArg.indexOf("^@"), cfgArg.size()-cfgArg.indexOf("^@"));
+                    }
+                    if (cfgArg == params.configurationName) {
+                        isRunning = true;
+                    }
+                } else {
+                    if (params.configurationName == "") {
+                        isRunning = true;
+                    }
+                }
+            }
+
+            if (params.configurationName == "") {
+                app->sendParams(params.paramList());
+            }
+
+            if (isRunning) {
+                return EXIT_SUCCESS;
+            }
         }
 
 #if defined(Q_OS_WIN)

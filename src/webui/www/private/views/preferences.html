@@ -373,6 +373,8 @@
                 <textarea id="banned_IPs_textarea" rows="5" cols="70"></textarea>
             </fieldset>
         </div>
+        <input type="checkbox" id="auto_ban_unknown_peer_checkbox" />
+        <label for="auto_ban_unknown_peer_checkbox">QBT_TR(Auto Ban Unknown Client From China)QBT_TR[CONTEXT=OptionsDialog]</label>
     </fieldset>
 </div>
 
@@ -593,6 +595,24 @@
             <label for="add_trackers_checkbox">QBT_TR(Automatically add these trackers to new downloads:)QBT_TR[CONTEXT=OptionsDialog]</label>
         </legend>
         <textarea id="add_trackers_textarea" rows="5" cols="70"></textarea>
+    </fieldset>
+
+    <fieldset class="settings">
+        <legend><input type="checkbox" id="auto_update_trackers_checkbox"/>
+        <label for="auto_update_trackers_checkbox">QBT_TR(Automatically update public trackers list:)QBT_TR[CONTEXT=OptionsDialog]</label></legend>
+        <table>
+            <tr>
+                <td>
+                    Customize Trackers List Url:
+                    <input type="text" id="customize_trackers_list_url" style="width: 40em;" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <textarea id="public_trackers_textarea" rows="5" cols="70" readonly></textarea>
+                </td>
+            </tr>
+        </table>
     </fieldset>
 </div>
 
@@ -1606,6 +1626,7 @@
                         $('ipfilter_text').setProperty('value', pref.ip_filter_path);
                         $('ipfilter_trackers_checkbox').setProperty('checked', pref.ip_filter_trackers);
                         $('banned_IPs_textarea').setProperty('value', pref.banned_IPs);
+                        $('auto_ban_unknown_peer_checkbox').setProperty('checked', pref.auto_ban_unknown_peer);
                         updateFilterSettings();
 
                         // Speed tab
@@ -1683,6 +1704,9 @@
                         // Add trackers
                         $('add_trackers_checkbox').setProperty('checked', pref.add_trackers_enabled);
                         $('add_trackers_textarea').setProperty('value', pref.add_trackers);
+                        $('auto_update_trackers_checkbox').setProperty('checked', pref.auto_update_trackers_enabled);
+                        $('public_trackers_textarea').setProperty('value', pref.public_trackers);
+                        $('customize_trackers_list_url').setProperty('value', pref.customize_trackers_list_url);
                         updateAddTrackersEnabled();
 
                         // Web UI tab
@@ -1902,6 +1926,7 @@
             settings.set('ip_filter_path', $('ipfilter_text').getProperty('value'));
             settings.set('ip_filter_trackers', $('ipfilter_trackers_checkbox').getProperty('checked'));
             settings.set('banned_IPs', $('banned_IPs_textarea').getProperty('value'));
+            settings.set('auto_ban_unknown_peer', $('auto_ban_unknown_peer_checkbox').getProperty('checked'));
 
             // Speed tab
             // Global Rate Limits
@@ -2028,6 +2053,8 @@
             // Add trackers
             settings.set('add_trackers_enabled', $('add_trackers_checkbox').getProperty('checked'));
             settings.set('add_trackers', $('add_trackers_textarea').getProperty('value'));
+            settings.set('auto_update_trackers_enabled', $('auto_update_trackers_checkbox').getProperty('checked'));
+            settings.set('customize_trackers_list_url', $('customize_trackers_list_url').getProperty('value'));
 
             // Web UI tab
             // Language

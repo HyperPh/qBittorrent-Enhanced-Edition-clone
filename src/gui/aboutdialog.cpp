@@ -43,7 +43,7 @@ AboutDialog::AboutDialog(QWidget *parent)
     setAttribute(Qt::WA_DeleteOnClose);
 
     // Title
-    m_ui->labelName->setText(QString("<b><h2>qBittorrent " QBT_VERSION " (%1-bit)</h2></b>").arg(QT_POINTER_SIZE * 8));
+    m_ui->labelName->setText(QString("<b><h2>qBittorrent " QBT_VERSION " (%1-bit) (Enhanced Edition)</h2></b>").arg(QT_POINTER_SIZE * 8));
 
     m_ui->logo->setPixmap(Utils::Gui::scaledPixmapSvg(":/icons/skin/qbittorrent-tray.svg", this, 32));
 
@@ -56,13 +56,17 @@ AboutDialog::AboutDialog(QWidget *parent)
         "<tr><td>%3</td><td><a href=\"https://www.qbittorrent.org\">https://www.qbittorrent.org</a></td></tr>"
         "<tr><td>%4</td><td><a href=\"http://forum.qbittorrent.org\">http://forum.qbittorrent.org</a></td></tr>"
         "<tr><td>%5</td><td><a href=\"http://bugs.qbittorrent.org\">http://bugs.qbittorrent.org</a></td></tr>"
+        "<tr><td>%6</td><td><a href=\"https://github.com/c0re100/qBittorrent-Enhanced-Edition\">GitHub Repository</a></td></tr>"
+        "<tr><td>%7</td><td><a href=\"https://t.me/loli_make_the_world_great_again\">Husky</a></td></tr>"
         "</table>"
         "</p>")
         .arg(tr("An advanced BitTorrent client programmed in C++, based on Qt toolkit and libtorrent-rasterbar.")
             , tr("Copyright %1 2006-2019 The qBittorrent project").arg(QString::fromUtf8(C_COPYRIGHT))
             , tr("Home Page:")
             , tr("Forum:")
-            , tr("Bug Tracker:"));
+            , tr("Bug Tracker:")
+            , tr("Enhanced Edition:")
+            , tr("Maintainer:"));
     m_ui->labelAbout->setText(aboutText);
 
     m_ui->labelMascot->setPixmap(Utils::Gui::scaledPixmap(":/icons/skin/mascot.png", this));
