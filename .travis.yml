@@ -19,11 +19,11 @@ install:
 
 script:
 - |
-  [ -f /tmp/libtorrent-rasterbar-1.2.2/.unpack_ok ] || \
-      curl -L https://github.com/arvidn/libtorrent/releases/download/libtorrent-1_2_2/libtorrent-rasterbar-1.2.2.tar.gz | \
+  [ -f /tmp/libtorrent-rasterbar-1.2.3/.unpack_ok ] || \
+      curl -L https://github.com/arvidn/libtorrent/releases/download/libtorrent-1_2_2/libtorrent-rasterbar-1.2.3.tar.gz | \
       tar -zxf - -C /tmp
-- touch "/tmp/libtorrent-rasterbar-1.2.2/.unpack_ok"
-- cd "/tmp/libtorrent-rasterbar-1.2.2/"
+- touch "/tmp/libtorrent-rasterbar-1.2.3/.unpack_ok"
+- cd "/tmp/libtorrent-rasterbar-1.2.3/"
 - CXXFLAGS="-std=c++14" CPPFLAGS="-std=c++14" ./configure --prefix=/usr --with-boost-libdir="/usr/lib" --disable-debug --disable-dependency-tracking --disable-silent-rules --disable-maintainer-mode --with-libiconv
 - make clean
 - make -j$(nproc) V=0
