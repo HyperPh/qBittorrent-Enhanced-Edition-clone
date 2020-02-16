@@ -6,25 +6,27 @@ addons:
   apt:
     sources:
     - sourceline: 'ppa:mhier/libboost-latest'
-    - sourceline: 'ppa:beineri/opt-qt-5.12.6-xenial'
+    - sourceline: 'ppa:beineri/opt-qt-5.14.1-xenial'
     packages:
-    - qt512base
-    - qt512svg
-    - qt512tools
+    - qt514base
+    - qt514svg
+    - qt514tools
     - libboost1.70-dev
     - libgl1-mesa-dev
 
 install:
-- source /opt/qt512/bin/qt512-env.sh
+- sudo apt update && sudo apt full-upgrade -y
+- source /opt/qt514/bin/qt514-env.sh
 
 script:
+- mkdir -p /tmp/libtorrent-rasterbar
 - |
-  [ -f /tmp/libtorrent-rasterbar-1.2.3/.unpack_ok ] || \
-      curl -L https://github.com/arvidn/libtorrent/releases/download/libtorrent-1_2_3/libtorrent-rasterbar-1.2.3.tar.gz | \
-      tar -zxf - -C /tmp
-- touch "/tmp/libtorrent-rasterbar-1.2.3/.unpack_ok"
-- cd "/tmp/libtorrent-rasterbar-1.2.3/"
-- CXXFLAGS="-std=c++14" CPPFLAGS="-std=c++14" ./configure --prefix=/usr --with-boost-libdir="/usr/lib" --disable-debug --disable-dependency-tracking --disable-silent-rules --disable-maintainer-mode --with-libiconv
+  [ -f /tmp/libtorrent-rasterbar/.unpack_ok ] || \
+      curl -ksSfL https://github.com/arvidn/libtorrent/archive/HEAD.tar.gz | \
+      tar -zxf - -C /tmp/libtorrent-rasterbar --strip-components 1
+- touch "/tmp/libtorrent-rasterbar/.unpack_ok"
+- cd "/tmp/libtorrent-rasterbar/"
+- CXXFLAGS="-std=c++14" CPPFLAGS="-std=c++14" ./bootstrap.sh --prefix=/usr --with-boost-libdir="/usr/lib" --disable-debug --disable-dependency-tracking --disable-silent-rules --disable-maintainer-mode --with-libiconv
 - make clean
 - make -j$(nproc) V=0
 - sudo make uninstall
