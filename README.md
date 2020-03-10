@@ -81,6 +81,12 @@ Latest AppImage download: [qBittorrent-Enhanced-Edition.AppImage](https://github
 brew cask install c0re100-qbittorrent
 ```
 
+### Windows (Chocolatey) (Maintainer: [iYato](https://github.com/iYato))
+
+```
+choco install qbittorrent-enhanced
+```
+
 ### Misc:
 For more information please visit:
 https://www.qbittorrent.org
